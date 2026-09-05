@@ -2,7 +2,14 @@ import { create } from 'zustand'
 import { todayKey, type DayKey } from '../lib/date'
 import { createGoogleClient, AuthRequiredError, type GoogleClient } from '../lib/google/client'
 import { listCalendars, listEvents } from '../lib/google/calendar'
-import { listTaskLists, listTasks, tasksForDay, undatedTasks } from '../lib/google/tasks'
+import {
+  createTask,
+  listTaskLists,
+  listTasks,
+  setTaskCompleted,
+  tasksForDay,
+  undatedTasks,
+} from '../lib/google/tasks'
 import type { Calendar, CalendarEvent, TaskItem, TaskList } from '../lib/google/types'
 import { describeMissingScopes, missingScopes } from '../lib/google/scopes'
 import { loadSelection, resolveSelection, saveSelection } from '../lib/prefs'
@@ -35,7 +42,16 @@ interface AppState {
   refresh: () => Promise<void>
   toggleCalendar: (id: string) => Promise<void>
   toggleTaskList: (id: string) => Promise<void>
+  toggleTask: (task: TaskItem) => Promise<void>
+  addTask: (title: string) => Promise<void>
   dismissError: () => void
+}
+
+/** Applies `change` to one task wherever it appears in the day's lists. */
+function patchTask(state: AppState, id: string, change: Partial<TaskItem>) {
+  const apply = (list: TaskItem[]) =>
+    list.map((task) => (task.id === id ? { ...task, ...change } : task))
+  return { tasks: apply(state.tasks), undated: apply(state.undated) }
 }
 
 const host = platform()
@@ -176,6 +192,39 @@ export const useApp = create<AppState>()((set, get) => ({
     set({ selectedTaskListIds: next })
     saveSelection('taskLists', { selected: next, known: get().taskLists.map((l) => l.id) })
     await get().refresh()
+  },
+
+  async toggleTask(task) {
+    const next = !task.completed
+    // Applied before the request so the tick is instant; a checkbox that waits
+    // on a round trip feels broken even when it works.
+    set(patchTask(get(), task.id, { completed: next }))
+    try {
+      await setTaskCompleted(googleClient(), {
+        listId: task.listId,
+        taskId: task.id,
+        completed: next,
+      })
+    } catch (error) {
+      set({ ...patchTask(get(), task.id, { completed: task.completed }), error: describe(error) })
+    }
+  },
+
+  async addTask(title) {
+    const { day, selectedTaskListIds } = get()
+    const listId = selectedTaskListIds[0]
+    if (!listId) {
+      set({ error: 'Turn on a task list under Sources before adding a task.' })
+      return
+    }
+    try {
+      const created = await createTask(googleClient(), { listId, title, due: day })
+      // Re-sorted through the same path the API results take, so a new task
+      // lands where a refresh would have put it.
+      set({ tasks: tasksForDay([...get().tasks, created], day) })
+    } catch (error) {
+      set({ error: describe(error) })
+    }
   },
 
   dismissError: () => set({ error: null }),

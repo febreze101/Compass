@@ -48,6 +48,93 @@ export async function listTasks(
   return raw.filter((task) => task.deleted !== true).map((task) => normalizeTask(task, params.listId))
 }
 
+function taskUrl(listId: string, taskId: string): string {
+  return `${TASKS_API}/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`
+}
+
+function jsonRequest(method: string, payload?: unknown): RequestInit {
+  return {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+  }
+}
+
+/**
+ * A due day as the timestamp Google wants.
+ *
+ * Built by string concatenation on purpose: constructing a `Date` from the day
+ * and serialising it would shift the date by one for anyone behind UTC. Google
+ * discards the time portion anyway — see docs/SCOPE.md §7.
+ */
+function dueTimestamp(day: DayKey): string {
+  return `${day}T00:00:00.000Z`
+}
+
+/**
+ * Ticks or un-ticks a task.
+ *
+ * Un-completing needs `completed: null` as well as the status change — Google
+ * otherwise keeps the old completion timestamp alongside a `needsAction`
+ * status and rejects the inconsistent pair.
+ */
+export async function setTaskCompleted(
+  client: GoogleClient,
+  params: { listId: string; taskId: string; completed: boolean },
+): Promise<TaskItem> {
+  const patch = params.completed
+    ? { status: 'completed' }
+    : { status: 'needsAction', completed: null }
+  const updated = await client.request<RawGoogleTask>(
+    taskUrl(params.listId, params.taskId),
+    jsonRequest('PATCH', patch),
+  )
+  return normalizeTask(updated, params.listId)
+}
+
+/**
+ * Creates a task. A due day is required, not optional: an undated task has
+ * nowhere to appear in a day-based app. See docs/SCOPE.md §8.8.
+ */
+export async function createTask(
+  client: GoogleClient,
+  params: { listId: string; title: string; due: DayKey; notes?: string },
+): Promise<TaskItem> {
+  const title = params.title.trim()
+  if (!title) throw new Error('A task needs a title.')
+  if (!params.due) throw new Error('A task needs a due day.')
+
+  const created = await client.request<RawGoogleTask>(
+    `${TASKS_API}/lists/${encodeURIComponent(params.listId)}/tasks`,
+    jsonRequest('POST', { title, due: dueTimestamp(params.due), notes: params.notes }),
+  )
+  return normalizeTask(created, params.listId)
+}
+
+/** Patches whichever fields are supplied, leaving the rest untouched. */
+export async function updateTask(
+  client: GoogleClient,
+  params: { listId: string; taskId: string; title?: string; notes?: string; due?: DayKey },
+): Promise<TaskItem> {
+  const patch: Record<string, unknown> = {}
+  if (params.title !== undefined) patch.title = params.title
+  if (params.notes !== undefined) patch.notes = params.notes
+  if (params.due !== undefined) patch.due = dueTimestamp(params.due)
+
+  const updated = await client.request<RawGoogleTask>(
+    taskUrl(params.listId, params.taskId),
+    jsonRequest('PATCH', patch),
+  )
+  return normalizeTask(updated, params.listId)
+}
+
+export async function deleteTask(
+  client: GoogleClient,
+  params: { listId: string; taskId: string },
+): Promise<void> {
+  await client.request<void>(taskUrl(params.listId, params.taskId), jsonRequest('DELETE'))
+}
+
 /**
  * The tasks that belong on a given day: exactly those due that day.
  *

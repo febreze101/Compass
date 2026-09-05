@@ -398,3 +398,38 @@ button {
   flex: none;
   background: var(--accent);
 }
+
+/* ── Add task ──────────────────────────────────────────────────────────── */
+
+.addtask {
+  align-items: center;
+  cursor: text;
+}
+
+.addtask__plus {
+  width: 17px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 17px;
+  line-height: 1;
+  flex: none;
+}
+
+.addtask__input {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  padding: 0;
+  outline: none;
+  min-width: 0;
+}
+
+.addtask__input::placeholder {
+  color: var(--ink-3);
+}
+
+.task {
+  cursor: pointer;
+}

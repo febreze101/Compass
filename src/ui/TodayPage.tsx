@@ -24,11 +24,12 @@ export function TodayPage() {
         tasks={tasks}
         lists={taskLists}
         emptyLabel="Nothing due today."
+        allowAdding
       />
 
       {/* Tasks Google holds with no date. Compass always sets one, but tasks
           made in Google's own apps may not have it — without this they would
-          be invisible here. See docs/SCOPE.md §8.6. */}
+          be invisible here. See docs/SCOPE.md §8.8. */}
       {undated.length > 0 && (
         <TaskList
           title="No date"

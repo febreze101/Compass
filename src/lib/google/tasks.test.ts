@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from 'vitest'
-import { listTaskLists, listTasks, tasksForDay, undatedTasks } from './tasks'
+import {
+  createTask,
+  deleteTask,
+  listTaskLists,
+  listTasks,
+  setTaskCompleted,
+  tasksForDay,
+  undatedTasks,
+  updateTask,
+} from './tasks'
 import type { GoogleClient } from './client'
 import type { TaskItem } from './types'
 
@@ -56,6 +65,111 @@ describe('listTasks', () => {
       ],
     })
     expect((await listTasks(client, { listId: 'l1' })).map((t) => t.id)).toEqual(['a'])
+  })
+})
+
+function recordingClient(response: unknown = {}) {
+  const calls: { url: string; init?: RequestInit }[] = []
+  const client = {
+    calls,
+    request: vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init })
+      return response
+    }),
+  }
+  return client as unknown as GoogleClient & typeof client
+}
+
+const body = (init?: RequestInit) => JSON.parse((init?.body as string) ?? '{}')
+
+describe('setTaskCompleted', () => {
+  it('patches the task to completed', async () => {
+    const client = recordingClient({ id: 't1', status: 'completed' })
+    await setTaskCompleted(client, { listId: 'l1', taskId: 't1', completed: true })
+
+    const [call] = client.calls
+    expect(call.url).toContain('/lists/l1/tasks/t1')
+    expect(call.init?.method).toBe('PATCH')
+    expect(body(call.init).status).toBe('completed')
+  })
+
+  it('clears the completion timestamp when un-completing', async () => {
+    // Setting status back to needsAction is not enough: Google keeps the
+    // `completed` timestamp and rejects the combination. It has to be nulled.
+    const client = recordingClient({ id: 't1', status: 'needsAction' })
+    await setTaskCompleted(client, { listId: 'l1', taskId: 't1', completed: false })
+
+    const patch = body(client.calls[0].init)
+    expect(patch.status).toBe('needsAction')
+    expect(patch.completed).toBeNull()
+  })
+
+  it('returns the normalized task Google echoes back', async () => {
+    const client = recordingClient({ id: 't1', title: 'Done thing', status: 'completed' })
+    const task = await setTaskCompleted(client, { listId: 'l1', taskId: 't1', completed: true })
+    expect(task).toMatchObject({ id: 't1', listId: 'l1', completed: true })
+  })
+})
+
+describe('createTask', () => {
+  it('posts to the list with a title and due day', async () => {
+    const client = recordingClient({ id: 'new', title: 'Buy milk', status: 'needsAction' })
+    await createTask(client, { listId: 'l1', title: 'Buy milk', due: '2026-09-05' })
+
+    const [call] = client.calls
+    expect(call.url).toContain('/lists/l1/tasks')
+    expect(call.init?.method).toBe('POST')
+    expect(body(call.init).title).toBe('Buy milk')
+  })
+
+  it('sends the due day as UTC midnight, built from the string', async () => {
+    // Routing the day through a local Date would send the previous day for
+    // anyone behind UTC. The API wants a timestamp but only reads the date.
+    const client = recordingClient({ id: 'new', status: 'needsAction' })
+    await createTask(client, { listId: 'l1', title: 'x', due: '2026-09-05' })
+    expect(body(client.calls[0].init).due).toBe('2026-09-05T00:00:00.000Z')
+  })
+
+  it('rejects a task with no due day', async () => {
+    // Compass always dates the tasks it creates — an undated task has nowhere
+    // to appear in a day-based app. See docs/SCOPE.md §8.8.
+    const client = recordingClient()
+    await expect(
+      createTask(client, { listId: 'l1', title: 'x', due: '' }),
+    ).rejects.toThrow(/due/i)
+  })
+
+  it('rejects an empty title', async () => {
+    const client = recordingClient()
+    await expect(
+      createTask(client, { listId: 'l1', title: '   ', due: '2026-09-05' }),
+    ).rejects.toThrow(/title/i)
+  })
+})
+
+describe('updateTask', () => {
+  it('patches only the fields given', async () => {
+    const client = recordingClient({ id: 't1', status: 'needsAction' })
+    await updateTask(client, { listId: 'l1', taskId: 't1', title: 'Renamed' })
+
+    expect(client.calls[0].init?.method).toBe('PATCH')
+    const patch = body(client.calls[0].init)
+    expect(patch).toEqual({ title: 'Renamed' })
+  })
+
+  it('reschedules by sending a new due timestamp', async () => {
+    const client = recordingClient({ id: 't1', status: 'needsAction' })
+    await updateTask(client, { listId: 'l1', taskId: 't1', due: '2026-12-25' })
+    expect(body(client.calls[0].init).due).toBe('2026-12-25T00:00:00.000Z')
+  })
+})
+
+describe('deleteTask', () => {
+  it('deletes the task', async () => {
+    const client = recordingClient()
+    await deleteTask(client, { listId: 'l1', taskId: 't1' })
+    expect(client.calls[0].url).toContain('/lists/l1/tasks/t1')
+    expect(client.calls[0].init?.method).toBe('DELETE')
   })
 })
 
