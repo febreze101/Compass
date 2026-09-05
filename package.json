@@ -10,7 +10,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "tauri": "tauri",
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

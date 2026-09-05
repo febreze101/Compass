@@ -1,32 +1,80 @@
-# React + TypeScript + Vite
+# Compass
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Your calendar, your tasks, and today's note — on one page.
 
-Currently, two official plugins are available:
+Compass pulls Google Calendar events and Google Tasks together with a daily note,
+for Windows and Android. It's a rebuild of the Apple-only
+[Parchment](https://parchmentagenda.app/) on a Google and Windows stack.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **[docs/SCOPE.md](docs/SCOPE.md)** — what's being built, what isn't, and why
+- **[docs/google-setup.md](docs/google-setup.md)** — one-time Google Cloud setup
 
-## React Compiler
+## Getting started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+cp .env.example .env.local     # then fill in from docs/google-setup.md
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Google credentials are required before sign-in will work. The setup guide takes
+about 15 minutes and is a one-time thing.
+
+## Running
+
+```bash
+npm run desktop      # the Windows app (Tauri) — the real target
+npm run dev          # the same UI in a browser, for a faster loop
+```
+
+For browser development, open **`http://127.0.0.1:5173`**, not `localhost`.
+Google's desktop OAuth clients accept the loopback IP and reject the hostname.
+
+The desktop app has no such constraint: it catches the OAuth redirect on its own
+loopback server, on an ephemeral port.
+
+## Testing
+
+```bash
+npm run test         # watch mode
+npm run test:run     # once
+npm run lint
+npx tsc -b           # typecheck
+```
+
+Tests run on Node by default for speed. A test needing a DOM opts in with a
+`// @vitest-environment jsdom` docblock at the top of the file.
+
+## Layout
+
+```
+src/
+  lib/
+    date.ts          local-day handling; the app is anchored to calendar days
+    prefs.ts         which calendars and task lists feed the day view
+    session.ts       sign-in orchestration and the stored session
+    google/          API clients, OAuth transport, PKCE, normalization
+  platform/          the seam between shells — see below
+  state/store.ts     application state
+  ui/                components
+src-tauri/           the Windows shell (Rust)
+```
+
+### The platform seam
+
+One web codebase runs in three places. They differ in exactly four ways, and
+`src/platform/` is the only place that knows about it:
+
+| | Windows (Tauri) | Android (Capacitor) | Browser (dev) |
+|---|---|---|---|
+| Refresh token | Windows Credential Manager | *not yet built* | `localStorage` |
+| Notes | `Documents\Compass\*.md` | *not yet built* | `localStorage` |
+| OAuth redirect | Loopback server on `127.0.0.1` | *not yet built* | Page navigation |
+| OAuth client | Desktop | Android | Desktop |
+
+Everything above that layer — API clients, state, rendering, date logic — is
+written once.
+
+## Status
+
+M1 (sign-in and the Today page) and the task half of M2 are done. The desktop
+shell is M4. See [docs/SCOPE.md §5](docs/SCOPE.md) for the full milestone list.

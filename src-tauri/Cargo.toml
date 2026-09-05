@@ -1,0 +1,32 @@
+[package]
+name = "compass"
+version = "0.1.0"
+description = "Your calendar, your tasks, and today's note on one page"
+authors = ["Fabrice"]
+license = ""
+repository = ""
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "compass_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2.6.3", features = [] }
+
+[dependencies]
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+log = "0.4"
+tauri = { version = "2.11.3", features = [] }
+tauri-plugin-log = "2"
+# Opens the system browser for the OAuth consent screen. Signing in inside the
+# app's own webview is both worse for the user (no access to their existing
+# Google session) and discouraged by Google for native apps.
+tauri-plugin-opener = "2"
+# Daily notes as real files on disk.
+tauri-plugin-fs = "2"
+# The refresh token goes in Windows Credential Manager rather than anything
+# this app writes itself.
+keyring = { version = "3", features = ["windows-native"] }

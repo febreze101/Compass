@@ -75,15 +75,17 @@ app opens instantly and reads offline. Compass owns notes; nothing else touches 
 | | | Status |
 |---|---|---|
 | **M0** | Scaffold: Vite + React + TS, deps installed | done |
-| **M1** | Google auth working in the browser; Today page reads real events + tasks | code complete, awaiting OAuth credentials |
-| **M2** | Writes: complete/create/edit tasks, create/edit events | next |
-| **M3** | Daily note with local storage + autosave | |
-| **M4** | Tauri shell: Windows app, credential manager, loopback OAuth | |
+| **M1** | Google auth working in the browser; Today page reads real events + tasks | done |
+| **M2** | Writes: complete/create/edit tasks, create/edit events | tasks done; events next |
+| **M3** | Daily note with local storage + autosave | next |
+| **M4** | Tauri shell: Windows app, credential manager, loopback OAuth | done |
 | **M5** | Capacitor shell: Android app, custom-scheme OAuth | blocked, see §7 |
 | **M6** | Packaging: MSI installer, signed APK | |
 
-M1–M3 are all browser-testable, which is why they come first — fast loop, no build
-step, no shells to debug.
+M1–M3 were sequenced first because they are browser-testable — fast loop, no build
+step, no shells to debug. M4 was pulled ahead of M3 deliberately: notes must be real
+`.md` files (§8.4), and only the desktop shell can write them, so building the note UI
+in the browser first would have meant a throwaway `localStorage` stub.
 
 ## 6. Google OAuth for a personal app
 
@@ -115,8 +117,7 @@ in an installed app, which Google acknowledges.
 
 - **Android is blocked.** No Java, no `ANDROID_HOME`, no SDK on this machine. M5 needs
   Android Studio installed first. Everything through M4 is unaffected.
-- **Rust is 1.79**, older than current Tauri dependency trees are likely to want. A
-  `rustup update` may be needed at M4.
+- ~~Rust 1.79 is too old for Tauri.~~ Resolved: updated to 1.98.1 at M4.
 - **Google Tasks has no due *time*, and there is no workaround.** Confirmed against
   the [current API reference](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks):
   *"Only date information is recorded; the time portion of the timestamp is discarded

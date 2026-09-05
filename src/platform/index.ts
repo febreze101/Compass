@@ -5,6 +5,7 @@
  * property check rather than a build flag — one bundle runs everywhere.
  */
 
+import { createTauriPlatform } from './tauri'
 import { createWebPlatform } from './web'
 import type { Platform, PlatformName } from './types'
 
@@ -28,9 +29,11 @@ let current: Platform | null = null
 export function platform(): Platform {
   if (current) return current
   switch (detectPlatform()) {
-    // The native shells land at M4 and M5; until then everything runs on the
-    // browser implementation, including inside those shells.
     case 'tauri':
+      current = createTauriPlatform()
+      break
+    // The Android shell lands at M5; until then it falls back to the browser
+    // implementation, which is wrong for storage but lets the UI run.
     case 'capacitor':
     case 'web':
     default:
