@@ -52,6 +52,7 @@ export interface RawGoogleTask {
   position?: string
   parent?: string
   completed?: string
+  deleted?: boolean
 }
 
 export interface RawGoogleTaskList {
