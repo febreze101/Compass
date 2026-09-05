@@ -49,24 +49,30 @@ export async function listTasks(
 }
 
 /**
- * The tasks that belong on a given day.
+ * The tasks that belong on a given day: exactly those due that day.
  *
- * Due today, plus anything overdue and still unfinished — an unfinished task
- * from Tuesday is still work you have to do on Wednesday, and hiding it in the
- * past is how things get forgotten. Undated tasks belong to no day and are left
- * for a future backlog view.
+ * A missed task stays on the day it was scheduled rather than following the
+ * user forward — the day view stays an honest record of what was planned, and
+ * overdue work gets its own view later. See docs/SCOPE.md §8.7.
  */
 export function tasksForDay(tasks: TaskItem[], day: DayKey): TaskItem[] {
   return tasks
-    .filter((task) => {
-      if (!task.due) return false
-      if (task.due === day) return true
-      return task.due < day && !task.completed
-    })
+    .filter((task) => task.due === day)
     .sort(
       (a, b) =>
-        Number(a.completed) - Number(b.completed) ||
-        (a.due ?? '').localeCompare(b.due ?? '') ||
-        a.position.localeCompare(b.position),
+        Number(a.completed) - Number(b.completed) || a.position.localeCompare(b.position),
     )
+}
+
+/**
+ * Unfinished tasks Google holds with no due date.
+ *
+ * Compass always dates the tasks it creates, but tasks made in Google's own
+ * apps may have none. Without somewhere to surface them they would simply be
+ * invisible here, which is worse than showing them somewhere imperfect.
+ */
+export function undatedTasks(tasks: TaskItem[]): TaskItem[] {
+  return tasks
+    .filter((task) => !task.due && !task.completed)
+    .sort((a, b) => a.position.localeCompare(b.position))
 }

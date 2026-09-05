@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { listTaskLists, listTasks, tasksForDay } from './tasks'
+import { listTaskLists, listTasks, tasksForDay, undatedTasks } from './tasks'
 import type { GoogleClient } from './client'
 import type { TaskItem } from './types'
 
@@ -74,15 +74,12 @@ describe('tasksForDay', () => {
     expect(tasksForDay([due], '2026-09-05').map((t) => t.id)).toEqual(['today'])
   })
 
-  it('carries incomplete overdue tasks forward onto today', () => {
-    // An unfinished task from Tuesday still needs doing on Wednesday.
+  it('leaves overdue tasks on their own day rather than carrying them forward', () => {
+    // A missed task stays where it was scheduled; a dedicated overdue view is
+    // the planned home for it. See docs/SCOPE.md §8.7.
     const overdue = task({ id: 'late', due: '2026-09-01' })
-    expect(tasksForDay([overdue], '2026-09-05').map((t) => t.id)).toEqual(['late'])
-  })
-
-  it('does not carry forward overdue tasks that were completed', () => {
-    const done = task({ id: 'done', due: '2026-09-01', completed: true })
-    expect(tasksForDay([done], '2026-09-05')).toEqual([])
+    expect(tasksForDay([overdue], '2026-09-05')).toEqual([])
+    expect(tasksForDay([overdue], '2026-09-01').map((t) => t.id)).toEqual(['late'])
   })
 
   it('leaves future tasks out', () => {
@@ -93,18 +90,34 @@ describe('tasksForDay', () => {
     expect(tasksForDay([task({ due: undefined })], '2026-09-05')).toEqual([])
   })
 
-  it('sorts incomplete before complete, then by due day, then by position', () => {
+  it('sorts incomplete before complete, then by position', () => {
     const items = [
-      task({ id: 'done-today', due: '2026-09-05', completed: true }),
-      task({ id: 'today-b', due: '2026-09-05', position: '2' }),
-      task({ id: 'overdue', due: '2026-09-02' }),
-      task({ id: 'today-a', due: '2026-09-05', position: '1' }),
+      task({ id: 'done', due: '2026-09-05', completed: true, position: '0' }),
+      task({ id: 'b', due: '2026-09-05', position: '2' }),
+      task({ id: 'a', due: '2026-09-05', position: '1' }),
     ]
-    expect(tasksForDay(items, '2026-09-05').map((t) => t.id)).toEqual([
-      'overdue',
-      'today-a',
-      'today-b',
-      'done-today',
-    ])
+    expect(tasksForDay(items, '2026-09-05').map((t) => t.id)).toEqual(['a', 'b', 'done'])
+  })
+})
+
+describe('undatedTasks', () => {
+  const task = (over: Partial<TaskItem>): TaskItem => ({
+    id: 'x',
+    listId: 'l1',
+    title: 't',
+    completed: false,
+    position: '0',
+    ...over,
+  })
+
+  it('finds tasks Google holds with no due date', () => {
+    // Compass always sets a date on tasks it creates, but tasks made in the
+    // Google apps may have none — and would otherwise be invisible here.
+    const items = [task({ id: 'none' }), task({ id: 'dated', due: '2026-09-05' })]
+    expect(undatedTasks(items).map((t) => t.id)).toEqual(['none'])
+  })
+
+  it('ignores completed undated tasks', () => {
+    expect(undatedTasks([task({ id: 'done', completed: true })])).toEqual([])
   })
 })

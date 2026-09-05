@@ -61,7 +61,7 @@ code in the project:
 
 | Seam | Windows (Tauri) | Android (Capacitor) | Browser (dev) |
 |---|---|---|---|
-| **Secrets** — the Google refresh token | Windows Credential Manager | App-private storage | `sessionStorage` |
+| **Secrets** — the Google refresh token | Windows Credential Manager | App-private storage | `localStorage` (dev only) |
 | **Notes** — where `2026-09-05.md` lives | `Documents\Compass\` (visible, openable) | Shared storage dir | IndexedDB (dev only) |
 | **OAuth redirect** — catching Google's callback | Loopback HTTP server on `127.0.0.1` | Custom URL scheme | Page navigation |
 
@@ -75,8 +75,8 @@ app opens instantly and reads offline. Compass owns notes; nothing else touches 
 | | | Status |
 |---|---|---|
 | **M0** | Scaffold: Vite + React + TS, deps installed | done |
-| **M1** | Google auth working in the browser; Today page reads real events + tasks | next |
-| **M2** | Writes: complete/create/edit tasks, create/edit events | |
+| **M1** | Google auth working in the browser; Today page reads real events + tasks | code complete, awaiting OAuth credentials |
+| **M2** | Writes: complete/create/edit tasks, create/edit events | next |
 | **M3** | Daily note with local storage + autosave | |
 | **M4** | Tauri shell: Windows app, credential manager, loopback OAuth | |
 | **M5** | Capacitor shell: Android app, custom-scheme OAuth | blocked, see §7 |
@@ -115,8 +115,8 @@ in an installed app, which Google acknowledges.
 
 - **Android is blocked.** No Java, no `ANDROID_HOME`, no SDK on this machine. M5 needs
   Android Studio installed first. Everything through M4 is unaffected.
-- **Rust is 1.79**, older than current Tauri dependency trees like. A `rustup update`
-  is likely needed at M4.
+- **Rust is 1.79**, older than current Tauri dependency trees are likely to want. A
+  `rustup update` may be needed at M4.
 - **Google Tasks has no due *time*, and there is no workaround.** Confirmed against
   the [current API reference](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks):
   *"Only date information is recorded; the time portion of the timestamp is discarded
@@ -153,9 +153,16 @@ in an installed app, which Google acknowledges.
    it creates a task. Rejected alternatives: storing times locally (drifts against the
    Tasks app, which would show a different time we can't read), and encoding times in
    the task `notes` field (round-trips, but pollutes the task in Google's own UI).
+7. **Overdue tasks stay on the day they were due**, rather than following the user
+   forward onto today. The day view stays an honest record of what was planned. A
+   dedicated **overdue view** is planned but out of v1 — see §9.
+8. **Compass always sets a due date on tasks it creates.** A task with no date has
+   nowhere to live in a day-based app. Tasks created in Google's own apps can still
+   arrive undated, so the Today page collects those under a "No date" heading —
+   otherwise they'd be silently invisible here.
 
 ## 9. Not decided yet, deliberately
 
 Where notes sync eventually goes — **Supabase is the current lean**, but the decision
-waits until v1 exists. NL capture and widgets likewise. All get easier once you've
-lived with the app and know how you actually use it.
+waits until v1 exists. An **overdue view** (§8.7), NL capture, and widgets likewise.
+All get easier once you've lived with the app and know how you actually use it.
