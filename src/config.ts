@@ -21,14 +21,23 @@ export const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 export const GOOGLE_REVOKE_ENDPOINT = 'https://oauth2.googleapis.com/revoke';
 
 /**
- * `calendar.events` and `tasks` are both read/write — v1 creates and edits on
- * both sides. `userinfo.email` is only so the settings screen can show which
- * account is connected.
+ * The narrowest set of scopes that actually works.
+ *
+ * `calendar.events` covers reading and writing events, but *not* listing the
+ * user's calendars — `calendarList.list` accepts only `calendar`,
+ * `calendar.readonly`, `calendar.calendarlist` or
+ * `calendar.calendarlist.readonly`. The read-only calendarList scope is the
+ * least privilege that lets the source picker work; Compass never creates or
+ * deletes calendars, only events on them.
+ *
+ * `userinfo.email` was requested at first and dropped: nothing in the app ever
+ * called for it, and an unused scope is one more line on the consent screen for
+ * the user to decline.
  */
 export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
   'https://www.googleapis.com/auth/tasks',
-  'https://www.googleapis.com/auth/userinfo.email',
 ].join(' ');
 
 /** Path segment Google redirects back to, on every platform. */

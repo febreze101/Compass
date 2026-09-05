@@ -8,22 +8,36 @@
  * that says which permission is missing and what to do about it.
  */
 
+const EVENTS = 'https://www.googleapis.com/auth/calendar.events'
+const CALENDAR_LIST = 'https://www.googleapis.com/auth/calendar.calendarlist.readonly'
+const TASKS = 'https://www.googleapis.com/auth/tasks'
+
 /**
- * Only the scopes the app genuinely cannot work without.
+ * What each capability needs, as a list of scopes any *one* of which suffices.
  *
- * `userinfo.email` is requested too, but it only labels the settings panel —
- * failing a session over it would be a false alarm.
+ * Listing alternatives matters: a user who granted full `calendar` access has
+ * more than enough to list calendars, and insisting on the narrow scope by name
+ * would report a problem that isn't there.
  */
-const REQUIRED = [
-  'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/tasks',
+const REQUIREMENTS: { canonical: string; accepts: string[] }[] = [
+  { canonical: EVENTS, accepts: [EVENTS, 'https://www.googleapis.com/auth/calendar'] },
+  {
+    canonical: CALENDAR_LIST,
+    accepts: [
+      CALENDAR_LIST,
+      'https://www.googleapis.com/auth/calendar.calendarlist',
+      'https://www.googleapis.com/auth/calendar.readonly',
+      'https://www.googleapis.com/auth/calendar',
+    ],
+  },
+  { canonical: TASKS, accepts: [TASKS] },
 ]
 
 /** Human-facing name for each scope, so errors can talk about features. */
 const FEATURE_BY_SCOPE: Record<string, string> = {
-  'https://www.googleapis.com/auth/calendar.events': 'Calendar events',
-  'https://www.googleapis.com/auth/tasks': 'Tasks',
-  'https://www.googleapis.com/auth/userinfo.email': 'your account email',
+  [EVENTS]: 'your calendar events',
+  [CALENDAR_LIST]: 'the list of your calendars',
+  [TASKS]: 'your tasks',
 }
 
 /**
@@ -35,7 +49,9 @@ const FEATURE_BY_SCOPE: Record<string, string> = {
 export function missingScopes(granted: string | undefined): string[] {
   if (granted === undefined) return []
   const held = new Set(granted.split(/\s+/).filter(Boolean))
-  return REQUIRED.filter((scope) => !held.has(scope))
+  return REQUIREMENTS.filter((need) => !need.accepts.some((scope) => held.has(scope))).map(
+    (need) => need.canonical,
+  )
 }
 
 export function describeMissingScopes(missing: string[]): string {

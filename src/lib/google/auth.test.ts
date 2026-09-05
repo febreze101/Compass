@@ -62,6 +62,14 @@ describe('buildAuthUrl', () => {
     expect(scope).toContain('auth/calendar.events')
     expect(scope).toContain('auth/tasks')
   })
+
+  it('requests calendarList access, which calendar.events does not cover', () => {
+    // calendarList.list accepts only calendar, calendar.readonly,
+    // calendar.calendarlist or calendar.calendarlist.readonly. Without one of
+    // them the very first request the app makes fails with "insufficient
+    // authentication scopes", long after a sign-in that looked successful.
+    expect(url().searchParams.get('scope')).toContain('auth/calendar.calendarlist.readonly')
+  })
 })
 
 describe('isExpired', () => {
@@ -154,6 +162,19 @@ describe('refreshTokens', () => {
     const tokens = await refreshTokens({ refreshToken: 'original-rt', credentials: creds })
     expect(tokens.refreshToken).toBe('original-rt')
     expect(tokens.accessToken).toBe('at2')
+  })
+
+  it('KEEPS the granted scope when Google omits it from the refresh response', async () => {
+    // Same shape of bug as the refresh token above: losing the scope on
+    // refresh blinds the startup permission check, so a session missing a
+    // permission stops reporting it and fails obscurely instead.
+    vi.stubGlobal('fetch', mockJson({ access_token: 'at2', expires_in: 3599 }))
+    const tokens = await refreshTokens({
+      refreshToken: 'rt',
+      credentials: creds,
+      scope: 'https://www.googleapis.com/auth/tasks',
+    })
+    expect(tokens.scope).toBe('https://www.googleapis.com/auth/tasks')
   })
 
   it('adopts a rotated refresh token when Google does send one', async () => {

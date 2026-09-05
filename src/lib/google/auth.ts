@@ -127,13 +127,17 @@ export async function exchangeCode(params: {
 /**
  * Exchanges a refresh token for a fresh access token.
  *
- * Google normally omits `refresh_token` from this response, so the incoming one
- * is carried forward. Dropping it here would break the *next* refresh, which
- * surfaces to the user as being signed out an hour later for no visible reason.
+ * Google normally omits both `refresh_token` and `scope` from this response, so
+ * the incoming values are carried forward. Dropping the refresh token would
+ * break the *next* refresh, surfacing as being signed out an hour later for no
+ * visible reason; dropping the scope would silently blind the startup
+ * permission check.
  */
 export async function refreshTokens(params: {
   refreshToken: string
   credentials: ClientCredentials
+  /** Scope from the existing session, carried forward if Google omits it. */
+  scope?: string
 }): Promise<TokenSet> {
   const payload = await postToken(
     new URLSearchParams({
@@ -143,5 +147,12 @@ export async function refreshTokens(params: {
     }),
   )
   const tokens = toTokenSet(payload, Date.now())
-  return { ...tokens, refreshToken: tokens.refreshToken ?? params.refreshToken }
+  return {
+    ...tokens,
+    refreshToken: tokens.refreshToken ?? params.refreshToken,
+    // Google usually omits  here too. Losing it would blind the
+    // startup permission check, so a session missing a permission would stop
+    // reporting it and fail obscurely on a data request instead.
+    scope: tokens.scope ?? params.scope,
+  }
 }

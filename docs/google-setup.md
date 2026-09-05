@@ -55,12 +55,23 @@ Under **Data access**, add these three scopes:
 
 ```
 https://www.googleapis.com/auth/calendar.events
+https://www.googleapis.com/auth/calendar.calendarlist.readonly
 https://www.googleapis.com/auth/tasks
-https://www.googleapis.com/auth/userinfo.email
 ```
 
-The first two are marked *sensitive*. That's expected and fine for Internal or
+The middle one is easy to overlook and its absence is not obvious. `calendar.events`
+covers reading and writing events but **not** listing which calendars you have:
+`calendarList.list` accepts only `calendar`, `calendar.readonly`,
+`calendar.calendarlist` or `calendar.calendarlist.readonly`. Without one of those,
+the first request Compass makes fails with *"insufficient authentication scopes"*,
+well after a sign-in that appeared to succeed.
+
+These are marked *sensitive*, which is expected and fine for Internal or
 unverified-production.
+
+**Tick every permission on the consent screen** when you sign in. Google lets you
+approve some sensitive scopes and decline others, and a partial grant produces the
+same error.
 
 ## 4. Create the Desktop OAuth client
 
@@ -129,4 +140,4 @@ wrong:
 | `Error 400: redirect_uri_mismatch` | Client type isn't **Desktop app** |
 | `Access blocked: … has not completed the Google verification process` | Still in *Testing* without being a test user — see step 3 |
 | Signed out roughly weekly | App left in *Testing* status — the §6 trap |
-| `insufficient authentication scopes` on tasks | Scopes not added under **Data access**, or you consented before adding them (revoke at <https://myaccount.google.com/permissions> and retry) |
+| `insufficient authentication scopes` | A scope is missing from the grant. Check all three are under **Data access**, then revoke at <https://myaccount.google.com/permissions> and sign in again with every box ticked — signing in again does **not** widen an existing grant on its own |
