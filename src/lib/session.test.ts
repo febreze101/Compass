@@ -3,6 +3,7 @@ import { beginSignIn, completeSignIn, createTokenStore, restoreSession, signOut 
 import type { Platform, PendingAuth } from '../platform/types'
 
 const NOW = new Date('2026-09-05T12:00:00Z').getTime()
+const CALLBACK = 'http://127.0.0.1:5173/oauth/callback'
 
 function fakePlatform(): Platform & { authorized: string[]; pending: PendingAuth | null } {
   const secrets = new Map<string, string>()
@@ -69,6 +70,27 @@ describe('beginSignIn', () => {
     expect(url.searchParams.get('redirect_uri')).toBe('http://127.0.0.1:5173/oauth/callback')
   })
 
+  it('exchanges the code against the redirect uri the authorization used', async () => {
+    // The Tauri shell binds a fresh ephemeral port for every attempt, so
+    // `redirectUri()` is deliberately not idempotent. Resolving it a second
+    // time at exchange time sent Google a redirect_uri it had never issued the
+    // code against, which it rejects as `invalid_grant` / "Bad Request".
+    const p = fakePlatform()
+    let port = 5000
+    p.oauth.redirectUri = async () => `http://127.0.0.1:${port++}/oauth/callback`
+    const fetchMock = vi.fn().mockResolvedValue(tokenResponse)
+    vi.stubGlobal('fetch', fetchMock)
+
+    await beginSignIn(p)
+
+    const authorized = new URL(p.authorized[0]).searchParams.get('redirect_uri')
+    const exchanged = new URLSearchParams(fetchMock.mock.calls[0][1].body as string).get(
+      'redirect_uri',
+    )
+    expect(authorized).toBe('http://127.0.0.1:5000/oauth/callback')
+    expect(exchanged).toBe(authorized)
+  })
+
   it('refuses to start when no client id is configured', async () => {
     const p = fakePlatform()
     p.oauth.credentials = () => ({ clientId: '' })
@@ -79,7 +101,7 @@ describe('beginSignIn', () => {
 describe('completeSignIn', () => {
   it('exchanges the code and stores the session', async () => {
     const p = fakePlatform()
-    await p.oauth.savePending({ verifier: 'v', state: 'st' })
+    await p.oauth.savePending({ verifier: 'v', state: 'st', redirectUri: CALLBACK })
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(tokenResponse))
 
     const tokens = await completeSignIn(
@@ -96,7 +118,7 @@ describe('completeSignIn', () => {
     // sign-in attempt. Exchanging the code anyway is the CSRF hole PKCE and
     // state exist to close.
     const p = fakePlatform()
-    await p.oauth.savePending({ verifier: 'v', state: 'expected' })
+    await p.oauth.savePending({ verifier: 'v', state: 'expected', redirectUri: CALLBACK })
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
@@ -115,7 +137,7 @@ describe('completeSignIn', () => {
 
   it('surfaces the error Google put in the callback', async () => {
     const p = fakePlatform()
-    await p.oauth.savePending({ verifier: 'v', state: 'st' })
+    await p.oauth.savePending({ verifier: 'v', state: 'st', redirectUri: CALLBACK })
     await expect(
       completeSignIn(p, 'http://127.0.0.1:5173/oauth/callback?error=access_denied&state=st'),
     ).rejects.toThrow(/access_denied/)
@@ -123,7 +145,7 @@ describe('completeSignIn', () => {
 
   it('rejects a callback carrying neither code nor error', async () => {
     const p = fakePlatform()
-    await p.oauth.savePending({ verifier: 'v', state: 'st' })
+    await p.oauth.savePending({ verifier: 'v', state: 'st', redirectUri: CALLBACK })
     await expect(
       completeSignIn(p, 'http://127.0.0.1:5173/oauth/callback?state=st'),
     ).rejects.toThrow(/code/i)

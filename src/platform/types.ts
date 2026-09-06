@@ -30,6 +30,14 @@ export interface NoteStore {
 export interface PendingAuth {
   verifier: string
   state: string
+  /**
+   * The exact `redirect_uri` the authorization request was sent with.
+   *
+   * Carried rather than recomputed: the token exchange must present an
+   * identical string, and a platform that binds an ephemeral loopback port
+   * hands back a different URI on every call.
+   */
+  redirectUri: string
 }
 
 export interface OAuthBridge {

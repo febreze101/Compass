@@ -60,11 +60,17 @@ export async function beginSignIn(platform: Platform): Promise<TokenSet | null> 
 
   const verifier = createVerifier()
   const state = randomState()
-  await platform.oauth.savePending({ verifier, state })
+
+  // Resolved exactly once, then carried through the round trip. The Tauri shell
+  // binds a fresh ephemeral port per attempt, so asking a second time at
+  // exchange time would present Google a redirect_uri it never issued the code
+  // against — rejected as `invalid_grant`, described only as "Bad Request".
+  const redirectUri = await platform.oauth.redirectUri()
+  await platform.oauth.savePending({ verifier, state, redirectUri })
 
   const authUrl = buildAuthUrl({
     clientId: credentials.clientId,
-    redirectUri: await platform.oauth.redirectUri(),
+    redirectUri,
     codeChallenge: await challengeFor(verifier),
     state,
   })
@@ -100,7 +106,7 @@ export async function completeSignIn(platform: Platform, redirectUrl: string): P
   const tokens = await exchangeCode({
     code,
     verifier: pending.verifier,
-    redirectUri: await platform.oauth.redirectUri(),
+    redirectUri: pending.redirectUri,
     credentials: platform.oauth.credentials(),
   })
 
