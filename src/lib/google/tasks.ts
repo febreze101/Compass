@@ -8,7 +8,7 @@
  */
 
 import type { DayKey } from '../date'
-import type { GoogleClient } from './client'
+import { jsonRequest, type GoogleClient } from './client'
 import { normalizeTask, normalizeTaskList } from './normalize'
 import { collectPages } from './paginate'
 import type { RawGoogleTask, RawGoogleTaskList, TaskItem, TaskList } from './types'
@@ -50,14 +50,6 @@ export async function listTasks(
 
 function taskUrl(listId: string, taskId: string): string {
   return `${TASKS_API}/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`
-}
-
-function jsonRequest(method: string, payload?: unknown): RequestInit {
-  return {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
-  }
 }
 
 /**

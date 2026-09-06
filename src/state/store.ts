@@ -1,7 +1,16 @@
 import { create } from 'zustand'
-import { todayKey, type DayKey } from '../lib/date'
+import { dayKeyOf, todayKey, type DayKey } from '../lib/date'
+import { classifyCapture } from '../lib/capture'
 import { createGoogleClient, AuthRequiredError, type GoogleClient } from '../lib/google/client'
-import { listCalendars, listEvents } from '../lib/google/calendar'
+import {
+  createEvent,
+  defaultWriteCalendar,
+  deleteEvent,
+  listCalendars,
+  listEvents,
+  updateEvent,
+  type EventDraft,
+} from '../lib/google/calendar'
 import {
   createTask,
   listTaskLists,
@@ -44,7 +53,30 @@ interface AppState {
   toggleTaskList: (id: string) => Promise<void>
   toggleTask: (task: TaskItem) => Promise<void>
   addTask: (title: string) => Promise<void>
+  addEvent: (draft: EventDraft) => Promise<void>
+  /**
+   * Report whether the write landed, unlike the fire-and-forget adders: the
+   * editor has to stay open on failure, or the user loses what they typed.
+   */
+  saveEvent: (event: CalendarEvent, draft: EventDraft) => Promise<boolean>
+  removeEvent: (event: CalendarEvent) => Promise<boolean>
+  /** One input, routed by whether it carries a time. See docs/SCOPE.md §8.6. */
+  capture: (input: { title: string; time?: string }) => Promise<void>
   dismissError: () => void
+}
+
+/**
+ * Chronological, which for an all-day event means first: its start is local
+ * midnight. Shared by every path that puts events into state so a freshly
+ * written one lands exactly where a refresh would have put it.
+ */
+function byStart(a: CalendarEvent, b: CalendarEvent): number {
+  return a.start.getTime() - b.start.getTime()
+}
+
+/** Event ids are unique per calendar, not globally. */
+function sameEvent(a: CalendarEvent, b: CalendarEvent): boolean {
+  return a.id === b.id && a.calendarId === b.calendarId
 }
 
 /** Applies `change` to one task wherever it appears in the day's lists. */
@@ -170,7 +202,7 @@ export const useApp = create<AppState>()((set, get) => ({
 
       const allTasks = taskPages.flat()
       set({
-        events: eventPages.flat().sort((a, b) => a.start.getTime() - b.start.getTime()),
+        events: eventPages.flat().sort(byStart),
         tasks: tasksForDay(allTasks, day),
         undated: undatedTasks(allTasks),
         loadingDay: false,
@@ -225,6 +257,75 @@ export const useApp = create<AppState>()((set, get) => ({
     } catch (error) {
       set({ error: describe(error) })
     }
+  },
+
+  async addEvent(draft) {
+    const target = defaultWriteCalendar(get().calendars, get().selectedCalendarIds)
+    if (!target) {
+      set({ error: 'Turn on a calendar you can edit under Sources before adding an event.' })
+      return
+    }
+    try {
+      const created = await createEvent(googleClient(), { calendarId: target.id, draft })
+      // Google decides the final times, so where it belongs is answered by what
+      // came back rather than by what was asked for.
+      if (dayKeyOf(created.start) === get().day) {
+        set({ events: [...get().events, created].sort(byStart) })
+      }
+    } catch (error) {
+      set({ error: describe(error) })
+    }
+  },
+
+  async saveEvent(event, draft) {
+    try {
+      const updated = await updateEvent(googleClient(), {
+        calendarId: event.calendarId,
+        eventId: event.id,
+        draft,
+      })
+      const remaining = get().events.filter((e) => !sameEvent(e, event))
+      // Moved off the day being viewed, it simply leaves — the alternative is
+      // showing it under a date it no longer falls on.
+      set({
+        events:
+          dayKeyOf(updated.start) === get().day
+            ? [...remaining, updated].sort(byStart)
+            : remaining,
+      })
+      return true
+    } catch (error) {
+      set({ error: describe(error) })
+      return false
+    }
+  },
+
+  async removeEvent(event) {
+    const previous = get().events
+    // Removed first, like the task checkbox: a deletion that waits on a round
+    // trip reads as a click that didn't register.
+    set({ events: previous.filter((e) => !sameEvent(e, event)) })
+    try {
+      await deleteEvent(googleClient(), { calendarId: event.calendarId, eventId: event.id })
+      return true
+    } catch (error) {
+      set({ events: previous, error: describe(error) })
+      return false
+    }
+  },
+
+  async capture(input) {
+    const captured = classifyCapture(input)
+    if (!captured) return
+    if (captured.kind === 'task') {
+      await get().addTask(captured.title)
+      return
+    }
+    await get().addEvent({
+      title: captured.title,
+      day: get().day,
+      startTime: captured.startTime,
+    })
   },
 
   dismissError: () => set({ error: null }),

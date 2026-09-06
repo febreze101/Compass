@@ -399,14 +399,14 @@ button {
   background: var(--accent);
 }
 
-/* ── Add task ──────────────────────────────────────────────────────────── */
+/* ── Capture ───────────────────────────────────────────────────────────── */
 
-.addtask {
+.capture {
   align-items: center;
   cursor: text;
 }
 
-.addtask__plus {
+.capture__plus {
   width: 17px;
   text-align: center;
   color: var(--ink-3);
@@ -415,7 +415,7 @@ button {
   flex: none;
 }
 
-.addtask__input {
+.capture__input {
   flex: 1;
   border: none;
   background: none;
@@ -426,10 +426,134 @@ button {
   min-width: 0;
 }
 
-.addtask__input::placeholder {
+.capture__input::placeholder {
+  color: var(--ink-3);
+}
+
+.capture__time {
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  flex: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.capture__time:hover,
+.capture__time:focus {
+  border-color: var(--rule);
+  background: var(--card-sunk);
+  outline: none;
+}
+
+.hint {
+  margin: var(--space-2) 0 0;
+  font-size: 12.5px;
   color: var(--ink-3);
 }
 
 .task {
   cursor: pointer;
+}
+
+/* ── Event editing ─────────────────────────────────────────────────────── */
+
+.row--editable {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.row--editable:hover {
+  background: var(--card-sunk);
+}
+
+.row--editable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.editor {
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--card-sunk);
+}
+
+.editor__title {
+  width: 100%;
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  outline-color: var(--accent);
+}
+
+.editor__times {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.editor__field {
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  outline-color: var(--accent);
+  min-width: 0;
+}
+
+.editor__location {
+  width: 100%;
+}
+
+.editor__dash {
+  color: var(--ink-3);
+}
+
+.editor__note {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.editor__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.button-small {
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+  height: 30px;
+  line-height: 1;
+}
+
+.textbutton--danger {
+  color: var(--danger);
+}
+
+.textbutton--danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.textbutton:disabled,
+.button-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Delete sits apart from Save/Cancel — it's the one that can't be undone. */
+.editor__actions .textbutton--danger {
+  margin-left: auto;
 }

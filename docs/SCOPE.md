@@ -76,7 +76,7 @@ app opens instantly and reads offline. Compass owns notes; nothing else touches 
 |---|---|---|
 | **M0** | Scaffold: Vite + React + TS, deps installed | done |
 | **M1** | Google auth working in the browser; Today page reads real events + tasks | done |
-| **M2** | Writes: complete/create/edit tasks, create/edit events | tasks done; events next |
+| **M2** | Writes: complete/create/edit tasks, create/edit events | done |
 | **M3** | Daily note with local storage + autosave | next |
 | **M4** | Tauri shell: Windows app, credential manager, loopback OAuth | done |
 | **M5** | Capacitor shell: Android app, custom-scheme OAuth | blocked, see §7 |
@@ -127,8 +127,13 @@ in an installed app, which Google acknowledges.
   empirically too: your calendar list contains only your primary calendar and US
   Holidays, no Tasks calendar, so the Calendar API can't reach them either. See §8.6
   for how v1 handles this.
-- **Calendar recurring events** need `singleEvents=true` expansion; editing one
-  instance of a recurring series is fiddly and may get deferred past v1.
+- ~~Calendar recurring events are fiddly to edit.~~ Partly resolved at M2.
+  `singleEvents=true` returns each occurrence under its own instance id, and
+  writing to that id changes only that occurrence — so editing and deleting a
+  single day of a series works, and the editor says so on screen. Editing the
+  **series** (this-and-following, or all events) is **out of v1**: it needs a
+  scope prompt and recurrence-rule editing, neither of which earns its place in
+  a one-page day view.
 
 ## 8. Decisions (resolved 2026-09-05)
 

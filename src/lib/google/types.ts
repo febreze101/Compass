@@ -26,6 +26,8 @@ export interface RawGoogleEvent {
   location?: string
   status?: string
   htmlLink?: string
+  /** Set on an expanded instance, naming the series it belongs to. */
+  recurringEventId?: string
   start: RawGoogleEventDate
   end: RawGoogleEventDate
 }
@@ -77,6 +79,11 @@ export interface CalendarEvent {
   location?: string
   description?: string
   htmlLink?: string
+  /**
+   * One occurrence of a repeating series. Compass edits the occurrence, never
+   * the series — see docs/SCOPE.md §7.
+   */
+  recurring: boolean
 }
 
 export interface Calendar {

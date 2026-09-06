@@ -59,6 +59,39 @@ export function isSameDayKey(date: Date, key: DayKey): boolean {
   return dayKeyOf(date) === key
 }
 
+/** A wall-clock time of day, `HH:MM` on a 24-hour clock. */
+export type TimeKey = string
+
+const TIME_KEY_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)$/
+
+/**
+ * The local instant at `time` on `key`.
+ *
+ * Built from the local day rather than by parsing a combined string, so it
+ * lands on the wall clock the user typed regardless of their offset. On a
+ * spring-forward day a time inside the skipped hour doesn't exist; the platform
+ * resolves it to the adjacent hour, which is the best available answer.
+ */
+export function atTime(key: DayKey, time: TimeKey): Date {
+  const match = TIME_KEY_PATTERN.exec(time)
+  if (!match) {
+    throw new Error(`Invalid time ${JSON.stringify(time)}: expected HH:MM`)
+  }
+  const date = parseDayKey(key)
+  date.setHours(Number(match[1]), Number(match[2]), 0, 0)
+  return date
+}
+
+/** The local wall-clock time of an instant, as `HH:MM`. */
+export function timeOfDay(date: Date): TimeKey {
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+/** Whole minutes from `from` to `to`, negative when `to` is earlier. */
+export function minutesBetween(from: Date, to: Date): number {
+  return Math.round((to.getTime() - from.getTime()) / 60_000)
+}
+
 /** `+05:30`-style UTC offset for an instant, as RFC3339 requires. */
 function utcOffset(date: Date): string {
   const minutes = -date.getTimezoneOffset()

@@ -50,6 +50,7 @@ Tests run on Node by default for speed. A test needing a DOM opts in with a
 src/
   lib/
     date.ts          local-day handling; the app is anchored to calendar days
+    capture.ts       the rule that sends an entry to a task or an event
     prefs.ts         which calendars and task lists feed the day view
     session.ts       sign-in orchestration and the stored session
     google/          API clients, OAuth transport, PKCE, normalization
@@ -76,5 +77,10 @@ written once.
 
 ## Status
 
-M1 (sign-in and the Today page) and the task half of M2 are done. The desktop
-shell is M4. See [docs/SCOPE.md §5](docs/SCOPE.md) for the full milestone list.
+M1 (sign-in and the Today page), M2 (tasks and events both write back to Google)
+and M4 (the Windows shell) are done. Next is M3, the daily note. See
+[docs/SCOPE.md §5](docs/SCOPE.md) for the full milestone list.
+
+Adding something uses one box: give it a time and it becomes a calendar event,
+leave the time blank and it becomes a task. Google Tasks cannot store a time,
+so that split is forced rather than chosen — see [§7 and §8.6](docs/SCOPE.md).

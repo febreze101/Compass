@@ -21,6 +21,13 @@ const allDay: RawGoogleEvent = {
 }
 
 describe('normalizeEvent', () => {
+  it('flags an expanded instance of a series', () => {
+    // singleEvents=true returns occurrences, each naming its parent series.
+    // Compass edits the occurrence only — docs/SCOPE.md §7.
+    expect(normalizeEvent({ ...timed, recurringEventId: 'series-1' }, 'cal-a').recurring).toBe(true)
+    expect(normalizeEvent(timed, 'cal-a').recurring).toBe(false)
+  })
+
   it('reads a timed event', () => {
     const e = normalizeEvent(timed, 'cal-a')
     expect(e.id).toBe('evt1')

@@ -1,4 +1,5 @@
 import { useApp } from '../state/store'
+import { Capture } from './Capture'
 import { DayBar } from './DayBar'
 import { EventList } from './EventList'
 import { SourcePicker } from './SourcePicker'
@@ -19,13 +20,7 @@ export function TodayPage() {
 
       <EventList events={events} calendars={calendars} />
 
-      <TaskList
-        title="Tasks"
-        tasks={tasks}
-        lists={taskLists}
-        emptyLabel="Nothing due today."
-        allowAdding
-      />
+      <TaskList title="Tasks" tasks={tasks} lists={taskLists} emptyLabel="Nothing due today." />
 
       {/* Tasks Google holds with no date. Compass always sets one, but tasks
           made in Google's own apps may not have it — without this they would
@@ -38,6 +33,8 @@ export function TodayPage() {
           emptyLabel=""
         />
       )}
+
+      <Capture />
 
       <SourcePicker />
     </main>
