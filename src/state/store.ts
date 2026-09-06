@@ -21,6 +21,7 @@ import {
 } from '../lib/google/tasks'
 import type { Calendar, CalendarEvent, TaskItem, TaskList } from '../lib/google/types'
 import { describeMissingScopes, missingScopes } from '../lib/google/scopes'
+import { createNoteSaver } from '../lib/notes'
 import { loadSelection, resolveSelection, saveSelection } from '../lib/prefs'
 import { beginSignIn, completeSignIn, createTokenStore, restoreSession, signOut } from '../lib/session'
 import { platform } from '../platform'
@@ -44,6 +45,13 @@ interface AppState {
   undated: TaskItem[]
   loadingDay: boolean
 
+  /** The day's note. Compass owns this outright — see docs/SCOPE.md §4. */
+  note: string
+  noteLoading: boolean
+  noteSaving: boolean
+  /** Days that already have a note, for marking them in the date bar. */
+  daysWithNotes: DayKey[]
+
   boot: () => Promise<void>
   signIn: () => Promise<void>
   disconnect: () => Promise<void>
@@ -62,6 +70,9 @@ interface AppState {
   removeEvent: (event: CalendarEvent) => Promise<boolean>
   /** One input, routed by whether it carries a time. See docs/SCOPE.md §8.6. */
   capture: (input: { title: string; time?: string }) => Promise<void>
+  editNote: (text: string) => void
+  /** Writes any outstanding edit now — on the way out of a day, or the app. */
+  flushNote: () => Promise<void>
   dismissError: () => void
 }
 
@@ -87,6 +98,44 @@ function patchTask(state: AppState, id: string, change: Partial<TaskItem>) {
 }
 
 const host = platform()
+
+/**
+ * Autosave for the note. Module-level, so one saver serves the whole session
+ * and an edit can't be stranded by a component unmounting mid-write.
+ */
+const noteSaver = createNoteSaver({
+  write: (day, text) => host.notes.write(day, text),
+  onError: (error) => useApp.setState({ error: describe(error) }),
+  onBusyChange: (busy) => {
+    useApp.setState({ noteSaving: busy })
+    // Once the disk is quiet, a note may have appeared or been emptied away,
+    // so the date-bar markers are restated.
+    if (!busy) void refreshNoteDays()
+  },
+})
+
+async function loadNote(day: DayKey): Promise<void> {
+  useApp.setState({ noteLoading: true })
+  try {
+    const text = await host.notes.read(day)
+    // Guarded because reads race: a slow one for a day already navigated away
+    // from must not paint over the note now on screen.
+    if (useApp.getState().day === day) useApp.setState({ note: text, noteLoading: false })
+  } catch (error) {
+    if (useApp.getState().day === day) {
+      useApp.setState({ note: '', noteLoading: false, error: describe(error) })
+    }
+  }
+}
+
+async function refreshNoteDays(): Promise<void> {
+  try {
+    useApp.setState({ daysWithNotes: await host.notes.listDaysWithNotes() })
+  } catch {
+    // Decoration only. A note store that can't be listed shouldn't raise an
+    // error over a page that is otherwise working.
+  }
+}
 
 let client: GoogleClient | null = null
 function googleClient(): GoogleClient {
@@ -130,8 +179,17 @@ export const useApp = create<AppState>()((set, get) => ({
   tasks: [],
   undated: [],
   loadingDay: false,
+  note: '',
+  noteLoading: false,
+  noteSaving: false,
+  daysWithNotes: [],
 
   async boot() {
+    // Notes are local and owed nothing by Google, so they load on their own
+    // schedule rather than behind sign-in.
+    void loadNote(get().day)
+    void refreshNoteDays()
+
     try {
       // An OAuth callback takes priority: the app booted *into* the redirect.
       const redirect = host.oauth.consumeRedirect()
@@ -183,8 +241,11 @@ export const useApp = create<AppState>()((set, get) => ({
   },
 
   async goToDay(day) {
-    set({ day })
-    await get().refresh()
+    // The outstanding edit belongs to the day being left, so it goes to disk
+    // before `day` moves underneath it.
+    await noteSaver.flush()
+    set({ day, note: '' })
+    await Promise.all([get().refresh(), loadNote(day)])
   },
 
   async refresh() {
@@ -327,6 +388,15 @@ export const useApp = create<AppState>()((set, get) => ({
       startTime: captured.startTime,
     })
   },
+
+  editNote(text) {
+    // Applied to state immediately and to disk shortly after — the textarea is
+    // controlled, so anything slower would fight the user's typing.
+    set({ note: text })
+    noteSaver.queue(get().day, text)
+  },
+
+  flushNote: () => noteSaver.flush(),
 
   dismissError: () => set({ error: null }),
 }))

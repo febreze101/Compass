@@ -62,7 +62,7 @@ code in the project:
 | Seam | Windows (Tauri) | Android (Capacitor) | Browser (dev) |
 |---|---|---|---|
 | **Secrets** — the Google refresh token | Windows Credential Manager | App-private storage | `localStorage` (dev only) |
-| **Notes** — where `2026-09-05.md` lives | `Documents\Compass\` (visible, openable) | Shared storage dir | IndexedDB (dev only) |
+| **Notes** — where `2026-09-05.md` lives | `Documents\Compass\` (visible, openable) | Shared storage dir | `localStorage` (dev only) |
 | **OAuth redirect** — catching Google's callback | Loopback HTTP server on `127.0.0.1` | Custom URL scheme | Page navigation |
 
 Everything else — API clients, state, rendering, date logic — is written once.
@@ -77,7 +77,7 @@ app opens instantly and reads offline. Compass owns notes; nothing else touches 
 | **M0** | Scaffold: Vite + React + TS, deps installed | done |
 | **M1** | Google auth working in the browser; Today page reads real events + tasks | done |
 | **M2** | Writes: complete/create/edit tasks, create/edit events | done |
-| **M3** | Daily note with local storage + autosave | next |
+| **M3** | Daily note with local storage + autosave | done |
 | **M4** | Tauri shell: Windows app, credential manager, loopback OAuth | done |
 | **M5** | Capacitor shell: Android app, custom-scheme OAuth | blocked, see §7 |
 | **M6** | Packaging: MSI installer, signed APK | |

@@ -51,6 +51,7 @@ src/
   lib/
     date.ts          local-day handling; the app is anchored to calendar days
     capture.ts       the rule that sends an entry to a task or an event
+    notes.ts         debounced autosave for the daily note
     prefs.ts         which calendars and task lists feed the day view
     session.ts       sign-in orchestration and the stored session
     google/          API clients, OAuth transport, PKCE, normalization
@@ -77,9 +78,13 @@ written once.
 
 ## Status
 
-M1 (sign-in and the Today page), M2 (tasks and events both write back to Google)
-and M4 (the Windows shell) are done. Next is M3, the daily note. See
-[docs/SCOPE.md §5](docs/SCOPE.md) for the full milestone list.
+M1–M4 are done: sign-in, the Today page, two-way tasks and events, the daily
+note, and the Windows shell. What's left is M5 (Android, blocked on the SDK)
+and M6 (packaging). See [docs/SCOPE.md §5](docs/SCOPE.md).
+
+Notes are plain `.md` files in `Documents\Compass\`, one per day, autosaved a
+moment after you stop typing. Nothing else touches them — open them in any
+editor you like.
 
 Adding something uses one box: give it a time and it becomes a calendar event,
 leave the time blank and it becomes a task. Google Tasks cannot store a time,

@@ -10,10 +10,23 @@ export default function App() {
   const dismissError = useApp((s) => s.dismissError)
   const disconnect = useApp((s) => s.disconnect)
   const boot = useApp((s) => s.boot)
+  const flushNote = useApp((s) => s.flushNote)
 
   useEffect(() => {
     void boot()
   }, [boot])
+
+  // The note autosaves on a short delay, which leaves a window where closing
+  // the app or switching away would lose the last few seconds of typing.
+  useEffect(() => {
+    const flush = () => void flushNote()
+    window.addEventListener('blur', flush)
+    window.addEventListener('beforeunload', flush)
+    return () => {
+      window.removeEventListener('blur', flush)
+      window.removeEventListener('beforeunload', flush)
+    }
+  }, [flushNote])
 
   return (
     <>

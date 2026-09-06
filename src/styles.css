@@ -460,6 +460,50 @@ button {
   cursor: pointer;
 }
 
+/* ── Note ──────────────────────────────────────────────────────────────── */
+
+.note {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--ink);
+  /* Serif, like the date: this is the one part of the page the user writes
+     prose into, and it should read as a page rather than a form field. */
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.65;
+  padding: var(--space-4);
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  min-height: 6.5rem;
+}
+
+.note::placeholder {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.section__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.section__status {
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+
+.iconbutton--noted {
+  /* A day carrying a note is worth knowing about before you step onto it. */
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--rule));
+  color: var(--accent);
+}
+
 /* ── Event editing ─────────────────────────────────────────────────────── */
 
 .row--editable {

@@ -2,6 +2,7 @@ import { useApp } from '../state/store'
 import { Capture } from './Capture'
 import { DayBar } from './DayBar'
 import { EventList } from './EventList'
+import { Note } from './Note'
 import { SourcePicker } from './SourcePicker'
 import { TaskList } from './TaskList'
 
@@ -13,10 +14,15 @@ export function TodayPage() {
   const undated = useApp((s) => s.undated)
   const calendars = useApp((s) => s.calendars)
   const taskLists = useApp((s) => s.taskLists)
+  const daysWithNotes = useApp((s) => s.daysWithNotes)
 
   return (
     <main className="shell">
-      <DayBar day={day} onChange={(next) => void goToDay(next)} />
+      <DayBar
+        day={day}
+        onChange={(next) => void goToDay(next)}
+        daysWithNotes={daysWithNotes}
+      />
 
       <EventList events={events} calendars={calendars} />
 
@@ -35,6 +41,8 @@ export function TodayPage() {
       )}
 
       <Capture />
+
+      <Note />
 
       <SourcePicker />
     </main>

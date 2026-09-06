@@ -8,9 +8,19 @@ const WITH_YEAR = new Intl.DateTimeFormat(undefined, {
   year: 'numeric',
 })
 
-export function DayBar({ day, onChange }: { day: DayKey; onChange: (day: DayKey) => void }) {
+export function DayBar({
+  day,
+  onChange,
+  daysWithNotes = [],
+}: {
+  day: DayKey
+  onChange: (day: DayKey) => void
+  /** Days holding a note, so stepping through them isn't blind. */
+  daysWithNotes?: DayKey[]
+}) {
   const date = parseDayKey(day)
   const today = todayKey()
+  const hasNote = (key: DayKey) => daysWithNotes.includes(key)
   // The year is noise for nearby dates and essential once you've navigated far.
   const sameYear = parseDayKey(today).getFullYear() === date.getFullYear()
 
@@ -25,9 +35,11 @@ export function DayBar({ day, onChange }: { day: DayKey; onChange: (day: DayKey)
 
       <div className="daybar__nav">
         <button
-          className="iconbutton"
+          className={`iconbutton${hasNote(addDays(day, -1)) ? ' iconbutton--noted' : ''}`}
           onClick={() => onChange(addDays(day, -1))}
-          aria-label="Previous day"
+          aria-label={
+            hasNote(addDays(day, -1)) ? 'Previous day (has a note)' : 'Previous day'
+          }
         >
           ‹
         </button>
@@ -37,9 +49,9 @@ export function DayBar({ day, onChange }: { day: DayKey; onChange: (day: DayKey)
           </button>
         )}
         <button
-          className="iconbutton"
+          className={`iconbutton${hasNote(addDays(day, 1)) ? ' iconbutton--noted' : ''}`}
           onClick={() => onChange(addDays(day, 1))}
-          aria-label="Next day"
+          aria-label={hasNote(addDays(day, 1)) ? 'Next day (has a note)' : 'Next day'}
         >
           ›
         </button>
