@@ -1,0 +1,8 @@
+# This machine has 8 GB, and a default `cargo build` runs one rustc per logical
+# core. On the Tauri dependency tree that peaked hard enough for Windows to
+# start killing processes, so parallelism is capped rather than left to scale
+# with core count.
+#
+# Raise or delete this on a machine with more headroom — it costs build time.
+[build]
+jobs = 3

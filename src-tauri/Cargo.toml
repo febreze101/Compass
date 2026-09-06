@@ -30,3 +30,13 @@ tauri-plugin-fs = "2"
 # The refresh token goes in Windows Credential Manager rather than anything
 # this app writes itself.
 keyring = { version = "3", features = ["windows-native"] }
+
+[profile.dev]
+# Full debug info is the single biggest contributor to peak memory and disk in
+# this tree, and line tables are enough to read a backtrace.
+debug = "line-tables-only"
+
+[profile.release]
+# Keeps the release build (M6) from being far heavier than the dev one on a
+# machine that cannot afford it.
+codegen-units = 4
