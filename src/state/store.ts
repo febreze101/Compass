@@ -73,6 +73,10 @@ interface AppState {
   editNote: (text: string) => void
   /** Writes any outstanding edit now — on the way out of a day, or the app. */
   flushNote: () => Promise<void>
+  /** Holds the app's exit open until the note is written. Returns an unsubscribe. */
+  watchExit: () => () => void
+  /** Opens a link from a note in the real browser, not the webview. */
+  openLink: (href: string) => void
   dismissError: () => void
 }
 
@@ -397,6 +401,12 @@ export const useApp = create<AppState>()((set, get) => ({
   },
 
   flushNote: () => noteSaver.flush(),
+
+  watchExit: () => host.onBeforeExit(() => noteSaver.flush()),
+
+  openLink(href) {
+    void host.openExternal(href).catch((error: unknown) => set({ error: describe(error) }))
+  },
 
   dismissError: () => set({ error: null }),
 }))

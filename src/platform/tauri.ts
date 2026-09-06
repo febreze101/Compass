@@ -8,6 +8,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core'
+import { getCurrentWindow } from '@tauri-apps/api/window'
 import { BaseDirectory, exists, mkdir, readDir, readTextFile, remove, writeTextFile } from '@tauri-apps/plugin-fs'
 import { openUrl } from '@tauri-apps/plugin-opener'
 
@@ -77,6 +78,43 @@ export function createTauriPlatform(): Platform {
     name: 'tauri',
     secrets: tauriSecrets,
     notes: tauriNotes,
+
+    openExternal: (url) => openUrl(url),
+
+    /**
+     * Holds the window shut until the pending note write finishes.
+     *
+     * `destroy()` closes without raising close-requested again, so completing
+     * the handler can't re-enter this and loop. If the write throws, the window
+     * still closes — refusing to let someone quit is worse than losing the tail
+     * of a note.
+     */
+    onBeforeExit(handler) {
+      const window = getCurrentWindow()
+      let unlisten: (() => void) | null = null
+      let disposed = false
+
+      void window
+        .onCloseRequested(async (event) => {
+          event.preventDefault()
+          try {
+            await handler()
+          } finally {
+            await window.destroy()
+          }
+        })
+        .then((stop) => {
+          // Unsubscribed before the listener finished registering.
+          if (disposed) stop()
+          else unlisten = stop
+        })
+
+      return () => {
+        disposed = true
+        unlisten?.()
+      }
+    },
+
     oauth: {
       async redirectUri() {
         if (!redirectUri) {

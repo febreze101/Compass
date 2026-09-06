@@ -498,6 +498,125 @@ button {
   color: var(--ink-3);
 }
 
+/* ── Write / Preview ───────────────────────────────────────────────────── */
+
+.tabs {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  background: var(--card-sunk);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.tab {
+  border: none;
+  background: none;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 2px var(--space-2);
+}
+
+.tab--on {
+  background: var(--card);
+  color: var(--ink-2);
+  box-shadow: 0 1px 2px rgb(35 32 27 / 8%);
+}
+
+/* ── Rendered note ─────────────────────────────────────────────────────── */
+
+.note--preview {
+  padding: var(--space-4);
+}
+
+.md > :first-child {
+  margin-top: 0;
+}
+
+.md > :last-child {
+  margin-bottom: 0;
+}
+
+.md__heading {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.md__p {
+  margin: 0 0 var(--space-3);
+}
+
+.md__list {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-5);
+}
+
+.md__list li {
+  margin-bottom: var(--space-1);
+}
+
+.md__task {
+  list-style: none;
+  margin-left: calc(var(--space-5) * -1);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.md__task input {
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.md__quote {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--rule);
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.md__code {
+  background: var(--card-sunk);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.9em;
+}
+
+.md__pre {
+  background: var(--card-sunk);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin: 0 0 var(--space-3);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.md__pre code {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.md__rule {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: var(--space-4) 0;
+}
+
+.md__link {
+  color: var(--accent);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
 .iconbutton--noted {
   /* A day carrying a note is worth knowing about before you step onto it. */
   border-color: color-mix(in srgb, var(--accent) 45%, var(--rule));

@@ -21,6 +21,8 @@ function fakePlatform(): Platform & { authorized: string[]; pending: PendingAuth
       write: async () => {},
       listDaysWithNotes: async () => [],
     },
+    openExternal: async () => {},
+    onBeforeExit: () => () => {},
     oauth: {
       redirectUri: async () => 'http://127.0.0.1:5173/oauth/callback',
       credentials: () => ({ clientId: 'desktop-id', clientSecret: 'desktop-secret' }),

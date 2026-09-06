@@ -63,7 +63,7 @@ src-tauri/           the Windows shell (Rust)
 
 ### The platform seam
 
-One web codebase runs in three places. They differ in exactly four ways, and
+One web codebase runs in three places. They differ in six ways, and
 `src/platform/` is the only place that knows about it:
 
 | | Windows (Tauri) | Android (Capacitor) | Browser (dev) |
@@ -72,6 +72,8 @@ One web codebase runs in three places. They differ in exactly four ways, and
 | Notes | `Documents\Compass\*.md` | *not yet built* | `localStorage` |
 | OAuth redirect | Loopback server on `127.0.0.1` | *not yet built* | Page navigation |
 | OAuth client | Desktop | Android | Desktop |
+| Opening a link | System browser, via opener | *not yet built* | New tab |
+| Closing the app | Held open until the note is saved | *not yet built* | Best-effort unload |
 
 Everything above that layer — API clients, state, rendering, date logic — is
 written once.
@@ -84,7 +86,8 @@ and M6 (packaging). See [docs/SCOPE.md §5](docs/SCOPE.md).
 
 Notes are plain `.md` files in `Documents\Compass\`, one per day, autosaved a
 moment after you stop typing. Nothing else touches them — open them in any
-editor you like.
+editor you like. **Write** shows the Markdown source, **Preview** renders it;
+what lands on disk is the source either way.
 
 Adding something uses one box: give it a time and it becomes a calendar event,
 leave the time blank and it becomes a task. Google Tasks cannot store a time,

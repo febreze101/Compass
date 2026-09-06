@@ -2,9 +2,10 @@
  * The platform seam.
  *
  * Tauri on Windows, Capacitor on Android, and a plain browser for development
- * differ in exactly four ways: where secrets go, where notes go, how the OAuth
- * redirect gets back into the app, and which OAuth client they authenticate as.
- * Everything above this layer is shared.
+ * differ in six ways: where secrets go, where notes go, how the OAuth redirect
+ * gets back into the app, which OAuth client they authenticate as, how a link
+ * opens outside the app, and how the app is told it's closing. Everything above
+ * this layer is shared.
  */
 
 import type { ClientCredentials } from '../lib/google/auth'
@@ -74,4 +75,18 @@ export interface Platform {
   secrets: SecretStore
   notes: NoteStore
   oauth: OAuthBridge
+
+  /**
+   * Opens a URL outside the app — the user's real browser, not the webview.
+   * A link in a note that navigated the app away from itself would be a bug.
+   */
+  openExternal(url: string): Promise<void>
+
+  /**
+   * Runs `handler` before the app closes, holding the exit until it settles.
+   *
+   * The note autosaves on a delay, so without this a close within a second of
+   * typing loses the last few words. Returns an unsubscribe.
+   */
+  onBeforeExit(handler: () => Promise<void>): () => void
 }

@@ -11,21 +11,21 @@ export default function App() {
   const disconnect = useApp((s) => s.disconnect)
   const boot = useApp((s) => s.boot)
   const flushNote = useApp((s) => s.flushNote)
+  const watchExit = useApp((s) => s.watchExit)
 
   useEffect(() => {
     void boot()
   }, [boot])
 
-  // The note autosaves on a short delay, which leaves a window where closing
-  // the app or switching away would lose the last few seconds of typing.
+  // The note autosaves on a short delay, so quitting inside that window would
+  // lose the last few words. The desktop shell holds the window shut until the
+  // write lands; the blur flush covers merely switching away from the app.
+  useEffect(() => watchExit(), [watchExit])
+
   useEffect(() => {
     const flush = () => void flushNote()
     window.addEventListener('blur', flush)
-    window.addEventListener('beforeunload', flush)
-    return () => {
-      window.removeEventListener('blur', flush)
-      window.removeEventListener('beforeunload', flush)
-    }
+    return () => window.removeEventListener('blur', flush)
   }, [flushNote])
 
   return (

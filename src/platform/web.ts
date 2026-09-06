@@ -66,6 +66,22 @@ export function createWebPlatform(): Platform {
     name: 'web',
     secrets: webSecrets,
     notes: webNotes,
+
+    async openExternal(url) {
+      window.open(url, '_blank', 'noopener,noreferrer')
+    },
+
+    /**
+     * Best effort only. A browser gives a page no way to await work during
+     * unload, so the real guarantee lives in the desktop shell — which is the
+     * one that owns real note files anyway.
+     */
+    onBeforeExit(handler) {
+      const flush = () => void handler()
+      window.addEventListener('beforeunload', flush)
+      return () => window.removeEventListener('beforeunload', flush)
+    },
+
     oauth: {
       async redirectUri() {
         // Google's loopback rule accepts any port on 127.0.0.1, but *not*

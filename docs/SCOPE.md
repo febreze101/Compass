@@ -42,7 +42,11 @@ Naming these now so they don't creep in:
    written back to Google Tasks.
 5. **Events, two-way.** Create, edit time/title/location, delete — written back to
    Google Calendar.
-6. **Daily note.** Plain-text/Markdown, autosaved, one document per calendar day.
+6. **Daily note.** Markdown, autosaved, one document per calendar day, with a
+   Write/Preview toggle. The file on disk is always the source — the preview
+   renders it, it doesn't replace it. A true rich-text editor is still out: it
+   would mean owning a document model that has to round-trip back to Markdown
+   without drift, and the point of §8.4 is that the `.md` file stays the thing.
 
 ## 4. Architecture
 
@@ -56,7 +60,7 @@ One codebase, three targets:
   (dev only)      (Windows)       (Android)
 ```
 
-The shells differ in exactly three ways, and those are the only platform-specific
+The shells differ in a handful of ways, and those are the only platform-specific
 code in the project:
 
 | Seam | Windows (Tauri) | Android (Capacitor) | Browser (dev) |
@@ -64,6 +68,12 @@ code in the project:
 | **Secrets** — the Google refresh token | Windows Credential Manager | App-private storage | `localStorage` (dev only) |
 | **Notes** — where `2026-09-05.md` lives | `Documents\Compass\` (visible, openable) | Shared storage dir | `localStorage` (dev only) |
 | **OAuth redirect** — catching Google's callback | Loopback HTTP server on `127.0.0.1` | Custom URL scheme | Page navigation |
+| **Opening a link** — a URL in a note | System browser | System browser | New tab |
+| **Closing** — flushing the note first | Close held until the write lands | *(M5)* | Best-effort on unload |
+
+The last two arrived with the note (M3): a link inside the webview would
+navigate the app away from itself, and autosave on a delay needs somewhere to
+finish when the window is closing.
 
 Everything else — API clients, state, rendering, date logic — is written once.
 
