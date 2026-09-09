@@ -79,7 +79,7 @@ app opens instantly and reads offline. Compass owns notes; nothing else touches 
 | **M2** | Writes: complete/create/edit tasks, create/edit events | tasks done; events next |
 | **M3** | Daily note with local storage + autosave | next |
 | **M4** | Tauri shell: Windows app, credential manager, loopback OAuth | done |
-| **M5** | Capacitor shell: Android app, custom-scheme OAuth | blocked, see §7 |
+| **M5** | Capacitor shell: Android app, custom-scheme OAuth | debug build succeeds; untested on a device, see §7 |
 | **M6** | Packaging: MSI installer, signed APK | |
 
 M1–M3 were sequenced first because they are browser-testable — fast loop, no build
@@ -115,8 +115,13 @@ in an installed app, which Google acknowledges.
 
 ## 7. Risks
 
-- **Android is blocked.** No Java, no `ANDROID_HOME`, no SDK on this machine. M5 needs
-  Android Studio installed first. Everything through M4 is unaffected.
+- ~~Android is blocked.~~ Resolved at M5: JDK 17 + 21 and the Android SDK
+  command-line tools (no Android Studio, no emulator) are installed — see
+  `docs/android-setup.md`. `android/app` debug-builds successfully. Still
+  open: the Android OAuth client doesn't exist yet (§6, §8.6 of
+  `google-setup.md`), and nothing has been installed to or run on an actual
+  device — this machine has no emulator and M5 hasn't been tried against a
+  physical phone yet.
 - ~~Rust 1.79 is too old for Tauri.~~ Resolved: updated to 1.98.1 at M4.
 - **Google Tasks has no due *time*, and there is no workaround.** Confirmed against
   the [current API reference](https://developers.google.com/workspace/tasks/reference/rest/v1/tasks):

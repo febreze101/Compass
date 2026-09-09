@@ -90,23 +90,27 @@ and browser development use.
 > installed app and Google's own CLI tools do the same. PKCE is what actually
 > secures this flow. Still, keep it out of git — `.env.local` is gitignored.
 
-## 5. Create the Android OAuth client — *defer this*
+## 5. Create the Android OAuth client
 
-This one needs a JDK to compute your signing certificate's SHA-1 fingerprint, and
-this machine has no Java yet. Come back after installing Android Studio, at
-milestone M5.
+Unblocked as of M5 — see `docs/android-setup.md` for how a JDK and the Android
+SDK command-line tools got onto this machine.
 
-When you do:
-
-1. Get the debug fingerprint:
+1. The debug keystore's SHA-1 (already computed on this machine):
+   ```
+   28:3E:A1:EF:8A:FE:14:3D:5F:DF:29:65:8B:02:1E:8D:5E:52:1B:88
+   ```
+   Regenerate it yourself if needed:
    ```
    keytool -list -v -alias androiddebugkey -keystore "$env:USERPROFILE\.android\debug.keystore" -storepass android -keypass android
    ```
 2. **Create client** → Application type **Android**
    - Package name: `app.compass.agenda`
-   - SHA-1: from the command above
+   - SHA-1: from above
 3. Android clients have no secret. The redirect is a custom scheme derived from
-   the client ID; Compass handles that automatically.
+   the client ID (`com.googleusercontent.apps.<id>`); `src/platform/capacitor.ts`
+   builds it and `android/app/build.gradle` wires it into the manifest
+   automatically from `VITE_GOOGLE_ANDROID_CLIENT_ID` — nothing to configure by
+   hand beyond step 6 below.
 
 ## 6. Put the values in `.env.local`
 
@@ -123,10 +127,17 @@ VITE_GOOGLE_DESKTOP_CLIENT_ID=…apps.googleusercontent.com
 VITE_GOOGLE_DESKTOP_CLIENT_SECRET=GOCSPX-…
 ```
 
-Leave `VITE_GOOGLE_ANDROID_CLIENT_ID` empty until step 5.
+Then, once you've done step 5, add the Android client id too:
+
+```
+VITE_GOOGLE_ANDROID_CLIENT_ID=…apps.googleusercontent.com
+```
 
 `.env.local` is gitignored. Restart `npm run dev` after editing it — Vite only
-reads env files at startup.
+reads env files at startup. For the Android client id specifically, also rerun
+`android/gradlew.bat assembleDebug` afterward — that value is baked into the
+manifest at Gradle build time (`android/app/build.gradle`), not read at
+runtime, so a Vite-only restart isn't enough for the Android app itself.
 
 ---
 

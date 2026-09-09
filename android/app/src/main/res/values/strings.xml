@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Compass</string>
+    <string name="title_activity_main">Compass</string>
+    <string name="package_name">app.compass.agenda</string>
+    <string name="custom_url_scheme">app.compass.agenda</string>
+</resources>
