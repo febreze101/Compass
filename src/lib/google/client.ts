@@ -31,6 +31,15 @@ export interface GoogleClient {
   request<T>(url: string, init?: RequestInit): Promise<T>
 }
 
+/** A JSON-bodied request, or a bare one when there's nothing to send. */
+export function jsonRequest(method: string, payload?: unknown): RequestInit {
+  return {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+  }
+}
+
 interface GoogleApiErrorBody {
   error?: { message?: string; status?: string } | string
   error_description?: string

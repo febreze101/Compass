@@ -399,14 +399,14 @@ button {
   background: var(--accent);
 }
 
-/* ── Add task ──────────────────────────────────────────────────────────── */
+/* ── Capture ───────────────────────────────────────────────────────────── */
 
-.addtask {
+.capture {
   align-items: center;
   cursor: text;
 }
 
-.addtask__plus {
+.capture__plus {
   width: 17px;
   text-align: center;
   color: var(--ink-3);
@@ -415,7 +415,7 @@ button {
   flex: none;
 }
 
-.addtask__input {
+.capture__input {
   flex: 1;
   border: none;
   background: none;
@@ -426,10 +426,297 @@ button {
   min-width: 0;
 }
 
-.addtask__input::placeholder {
+.capture__input::placeholder {
+  color: var(--ink-3);
+}
+
+.capture__time {
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  flex: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.capture__time:hover,
+.capture__time:focus {
+  border-color: var(--rule);
+  background: var(--card-sunk);
+  outline: none;
+}
+
+.hint {
+  margin: var(--space-2) 0 0;
+  font-size: 12.5px;
   color: var(--ink-3);
 }
 
 .task {
   cursor: pointer;
+}
+
+/* ── Note ──────────────────────────────────────────────────────────────── */
+
+.note {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--ink);
+  /* Serif, like the date: this is the one part of the page the user writes
+     prose into, and it should read as a page rather than a form field. */
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.65;
+  padding: var(--space-4);
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  min-height: 6.5rem;
+}
+
+.note::placeholder {
+  color: var(--ink-3);
+  font-style: italic;
+}
+
+.section__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.section__status {
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--ink-3);
+}
+
+/* ── Write / Preview ───────────────────────────────────────────────────── */
+
+.tabs {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  background: var(--card-sunk);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+}
+
+.tab {
+  border: none;
+  background: none;
+  color: var(--ink-3);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  padding: 2px var(--space-2);
+}
+
+.tab--on {
+  background: var(--card);
+  color: var(--ink-2);
+  box-shadow: 0 1px 2px rgb(35 32 27 / 8%);
+}
+
+/* ── Rendered note ─────────────────────────────────────────────────────── */
+
+.note--preview {
+  padding: var(--space-4);
+}
+
+.md > :first-child {
+  margin-top: 0;
+}
+
+.md > :last-child {
+  margin-bottom: 0;
+}
+
+.md__heading {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  line-height: 1.25;
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.md__p {
+  margin: 0 0 var(--space-3);
+}
+
+.md__list {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-5);
+}
+
+.md__list li {
+  margin-bottom: var(--space-1);
+}
+
+.md__task {
+  list-style: none;
+  margin-left: calc(var(--space-5) * -1);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.md__task input {
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.md__quote {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--rule);
+  color: var(--ink-2);
+  font-style: italic;
+}
+
+.md__code {
+  background: var(--card-sunk);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.9em;
+}
+
+.md__pre {
+  background: var(--card-sunk);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin: 0 0 var(--space-3);
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.md__pre code {
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
+}
+
+.md__rule {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: var(--space-4) 0;
+}
+
+.md__link {
+  color: var(--accent);
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.iconbutton--noted {
+  /* A day carrying a note is worth knowing about before you step onto it. */
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--rule));
+  color: var(--accent);
+}
+
+/* ── Event editing ─────────────────────────────────────────────────────── */
+
+.row--editable {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.row--editable:hover {
+  background: var(--card-sunk);
+}
+
+.row--editable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.editor {
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--card-sunk);
+}
+
+.editor__title {
+  width: 100%;
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  outline-color: var(--accent);
+}
+
+.editor__times {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.editor__field {
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  outline-color: var(--accent);
+  min-width: 0;
+}
+
+.editor__location {
+  width: 100%;
+}
+
+.editor__dash {
+  color: var(--ink-3);
+}
+
+.editor__note {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
+.editor__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.button-small {
+  padding: var(--space-2) var(--space-4);
+  font-size: 14px;
+  height: 30px;
+  line-height: 1;
+}
+
+.textbutton--danger {
+  color: var(--danger);
+}
+
+.textbutton--danger:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.textbutton:disabled,
+.button-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Delete sits apart from Save/Cancel — it's the one that can't be undone. */
+.editor__actions .textbutton--danger {
+  margin-left: auto;
 }

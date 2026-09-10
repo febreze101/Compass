@@ -1,5 +1,58 @@
 import { describe, expect, it } from 'vitest'
-import { addDays, dayKeyOf, dayRange, isSameDayKey, parseDayKey, todayKey } from './date'
+import {
+  addDays,
+  atTime,
+  dayKeyOf,
+  dayRange,
+  isSameDayKey,
+  minutesBetween,
+  parseDayKey,
+  timeOfDay,
+  todayKey,
+} from './date'
+
+describe('atTime', () => {
+  it('lands on the wall-clock time of the given local day', () => {
+    const at = atTime('2026-09-05', '09:30')
+    expect(dayKeyOf(at)).toBe('2026-09-05')
+    expect(at.getHours()).toBe(9)
+    expect(at.getMinutes()).toBe(30)
+    expect(at.getSeconds()).toBe(0)
+  })
+
+  it('accepts the edges of the clock', () => {
+    expect(timeOfDay(atTime('2026-09-05', '00:00'))).toBe('00:00')
+    expect(timeOfDay(atTime('2026-09-05', '23:59'))).toBe('23:59')
+  })
+
+  it.each(['9:30', '24:00', '12:60', '0930', '', 'noon'])('rejects %o', (time) => {
+    expect(() => atTime('2026-09-05', time)).toThrow(/HH:MM/)
+  })
+
+  it('rejects an impossible day just as parseDayKey does', () => {
+    expect(() => atTime('2026-02-30', '09:00')).toThrow(/no such date/)
+  })
+})
+
+describe('timeOfDay', () => {
+  it('zero-pads to HH:MM', () => {
+    expect(timeOfDay(new Date(2026, 8, 5, 7, 5))).toBe('07:05')
+  })
+
+  it('round-trips through atTime', () => {
+    expect(timeOfDay(atTime('2026-09-05', '14:45'))).toBe('14:45')
+  })
+})
+
+describe('minutesBetween', () => {
+  it('counts whole minutes forward', () => {
+    expect(minutesBetween(atTime('2026-09-05', '09:00'), atTime('2026-09-05', '10:30'))).toBe(90)
+  })
+
+  it('goes negative when the end is earlier', () => {
+    expect(minutesBetween(atTime('2026-09-05', '10:00'), atTime('2026-09-05', '09:45'))).toBe(-15)
+  })
+})
 
 describe('dayKeyOf', () => {
   it('formats a local date as YYYY-MM-DD', () => {

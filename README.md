@@ -50,6 +50,8 @@ Tests run on Node by default for speed. A test needing a DOM opts in with a
 src/
   lib/
     date.ts          local-day handling; the app is anchored to calendar days
+    capture.ts       the rule that sends an entry to a task or an event
+    notes.ts         debounced autosave for the daily note
     prefs.ts         which calendars and task lists feed the day view
     session.ts       sign-in orchestration and the stored session
     google/          API clients, OAuth transport, PKCE, normalization
@@ -61,7 +63,7 @@ src-tauri/           the Windows shell (Rust)
 
 ### The platform seam
 
-One web codebase runs in three places. They differ in exactly four ways, and
+One web codebase runs in three places. They differ in six ways, and
 `src/platform/` is the only place that knows about it:
 
 | | Windows (Tauri) | Android (Capacitor) | Browser (dev) |
@@ -70,11 +72,23 @@ One web codebase runs in three places. They differ in exactly four ways, and
 | Notes | `Documents\Compass\*.md` | *not yet built* | `localStorage` |
 | OAuth redirect | Loopback server on `127.0.0.1` | *not yet built* | Page navigation |
 | OAuth client | Desktop | Android | Desktop |
+| Opening a link | System browser, via opener | *not yet built* | New tab |
+| Closing the app | Held open until the note is saved | *not yet built* | Best-effort unload |
 
 Everything above that layer — API clients, state, rendering, date logic — is
 written once.
 
 ## Status
 
-M1 (sign-in and the Today page) and the task half of M2 are done. The desktop
-shell is M4. See [docs/SCOPE.md §5](docs/SCOPE.md) for the full milestone list.
+M1–M4 are done: sign-in, the Today page, two-way tasks and events, the daily
+note, and the Windows shell. What's left is M5 (Android, blocked on the SDK)
+and M6 (packaging). See [docs/SCOPE.md §5](docs/SCOPE.md).
+
+Notes are plain `.md` files in `Documents\Compass\`, one per day, autosaved a
+moment after you stop typing. Nothing else touches them — open them in any
+editor you like. **Write** shows the Markdown source, **Preview** renders it;
+what lands on disk is the source either way.
+
+Adding something uses one box: give it a time and it becomes a calendar event,
+leave the time blank and it becomes a task. Google Tasks cannot store a time,
+so that split is forced rather than chosen — see [§7 and §8.6](docs/SCOPE.md).

@@ -1,6 +1,8 @@
 import { useApp } from '../state/store'
+import { Capture } from './Capture'
 import { DayBar } from './DayBar'
 import { EventList } from './EventList'
+import { Note } from './Note'
 import { SourcePicker } from './SourcePicker'
 import { TaskList } from './TaskList'
 
@@ -12,20 +14,19 @@ export function TodayPage() {
   const undated = useApp((s) => s.undated)
   const calendars = useApp((s) => s.calendars)
   const taskLists = useApp((s) => s.taskLists)
+  const daysWithNotes = useApp((s) => s.daysWithNotes)
 
   return (
     <main className="shell">
-      <DayBar day={day} onChange={(next) => void goToDay(next)} />
+      <DayBar
+        day={day}
+        onChange={(next) => void goToDay(next)}
+        daysWithNotes={daysWithNotes}
+      />
 
       <EventList events={events} calendars={calendars} />
 
-      <TaskList
-        title="Tasks"
-        tasks={tasks}
-        lists={taskLists}
-        emptyLabel="Nothing due today."
-        allowAdding
-      />
+      <TaskList title="Tasks" tasks={tasks} lists={taskLists} emptyLabel="Nothing due today." />
 
       {/* Tasks Google holds with no date. Compass always sets one, but tasks
           made in Google's own apps may not have it — without this they would
@@ -38,6 +39,10 @@ export function TodayPage() {
           emptyLabel=""
         />
       )}
+
+      <Capture />
+
+      <Note />
 
       <SourcePicker />
     </main>

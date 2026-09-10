@@ -62,6 +62,7 @@ export function normalizeEvent(raw: RawGoogleEvent, calendarId: string): Calenda
     location: raw.location,
     description: raw.description,
     htmlLink: raw.htmlLink,
+    recurring: Boolean(raw.recurringEventId),
   }
 }
 

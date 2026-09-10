@@ -42,7 +42,11 @@ Naming these now so they don't creep in:
    written back to Google Tasks.
 5. **Events, two-way.** Create, edit time/title/location, delete — written back to
    Google Calendar.
-6. **Daily note.** Plain-text/Markdown, autosaved, one document per calendar day.
+6. **Daily note.** Markdown, autosaved, one document per calendar day, with a
+   Write/Preview toggle. The file on disk is always the source — the preview
+   renders it, it doesn't replace it. A true rich-text editor is still out: it
+   would mean owning a document model that has to round-trip back to Markdown
+   without drift, and the point of §8.4 is that the `.md` file stays the thing.
 
 ## 4. Architecture
 
@@ -56,14 +60,20 @@ One codebase, three targets:
   (dev only)      (Windows)       (Android)
 ```
 
-The shells differ in exactly three ways, and those are the only platform-specific
+The shells differ in a handful of ways, and those are the only platform-specific
 code in the project:
 
 | Seam | Windows (Tauri) | Android (Capacitor) | Browser (dev) |
 |---|---|---|---|
 | **Secrets** — the Google refresh token | Windows Credential Manager | App-private storage | `localStorage` (dev only) |
-| **Notes** — where `2026-09-05.md` lives | `Documents\Compass\` (visible, openable) | Shared storage dir | IndexedDB (dev only) |
+| **Notes** — where `2026-09-05.md` lives | `Documents\Compass\` (visible, openable) | Shared storage dir | `localStorage` (dev only) |
 | **OAuth redirect** — catching Google's callback | Loopback HTTP server on `127.0.0.1` | Custom URL scheme | Page navigation |
+| **Opening a link** — a URL in a note | System browser | System browser | New tab |
+| **Closing** — flushing the note first | Close held until the write lands | *(M5)* | Best-effort on unload |
+
+The last two arrived with the note (M3): a link inside the webview would
+navigate the app away from itself, and autosave on a delay needs somewhere to
+finish when the window is closing.
 
 Everything else — API clients, state, rendering, date logic — is written once.
 
@@ -76,8 +86,8 @@ app opens instantly and reads offline. Compass owns notes; nothing else touches 
 |---|---|---|
 | **M0** | Scaffold: Vite + React + TS, deps installed | done |
 | **M1** | Google auth working in the browser; Today page reads real events + tasks | done |
-| **M2** | Writes: complete/create/edit tasks, create/edit events | tasks done; events next |
-| **M3** | Daily note with local storage + autosave | next |
+| **M2** | Writes: complete/create/edit tasks, create/edit events | done |
+| **M3** | Daily note with local storage + autosave | done |
 | **M4** | Tauri shell: Windows app, credential manager, loopback OAuth | done |
 | **M5** | Capacitor shell: Android app, custom-scheme OAuth | done — verified on a physical device |
 | **M6** | Packaging: MSI installer, signed APK | |
@@ -131,8 +141,13 @@ in an installed app, which Google acknowledges.
   empirically too: your calendar list contains only your primary calendar and US
   Holidays, no Tasks calendar, so the Calendar API can't reach them either. See §8.6
   for how v1 handles this.
-- **Calendar recurring events** need `singleEvents=true` expansion; editing one
-  instance of a recurring series is fiddly and may get deferred past v1.
+- ~~Calendar recurring events are fiddly to edit.~~ Partly resolved at M2.
+  `singleEvents=true` returns each occurrence under its own instance id, and
+  writing to that id changes only that occurrence — so editing and deleting a
+  single day of a series works, and the editor says so on screen. Editing the
+  **series** (this-and-following, or all events) is **out of v1**: it needs a
+  scope prompt and recurrence-rule editing, neither of which earns its place in
+  a one-page day view.
 
 ## 8. Decisions (resolved 2026-09-05)
 
