@@ -111,6 +111,12 @@ SDK command-line tools got onto this machine.
    builds it and `android/app/build.gradle` wires it into the manifest
    automatically from `VITE_GOOGLE_ANDROID_CLIENT_ID` — nothing to configure by
    hand beyond step 6 below.
+4. **Enable custom URI scheme redirects on the client itself** — open it back
+   up, **Advanced settings** → enable **"Enable Custom URI scheme"**. Google
+   ships this off by default now; skip it and sign-in reaches Google only to
+   fail with `Error 400: invalid_request — Custom URI scheme is not enabled
+   for your Android client`. See `docs/android-setup.md` for the full story —
+   this is the step that actually blocked M5's first end-to-end test.
 
 ## 6. Put the values in `.env.local`
 
