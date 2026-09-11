@@ -113,6 +113,22 @@ export function createCapacitorPlatform(): Platform {
     name: 'capacitor',
     secrets: capacitorSecrets,
     notes: capacitorNotes,
+
+    async openExternal(url) {
+      await Browser.open({ url })
+    },
+
+    /**
+     * Best effort only, same as the browser shell: Android gives no way to
+     * hold the app open while an async write finishes, so this flushes on
+     * `pause` (backgrounding) rather than a hard close, which is as close as
+     * this platform gets to Tauri's held-shut window.
+     */
+    onBeforeExit(handler) {
+      const listener = App.addListener('pause', () => void handler())
+      return () => void listener.then((h) => h.remove())
+    },
+
     oauth: {
       async redirectUri() {
         return `${redirectScheme(GOOGLE_ANDROID_CLIENT_ID)}:/oauth2redirect`
