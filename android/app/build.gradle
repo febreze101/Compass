@@ -18,6 +18,17 @@ def redirectScheme = androidClientId
     ? "com.googleusercontent.apps.${androidClientId.replace('.apps.googleusercontent.com', '')}"
     : 'app.compass.agenda.oauth.unconfigured'
 
+// Release signing (M6). Same gitignored-properties-file pattern as
+// VITE_GOOGLE_ANDROID_CLIENT_ID above: the keystore path and passwords never
+// enter git. See docs/RELEASING.md. Without this file the release build type
+// falls back to unsigned — it still builds, it just won't produce an APK
+// Android will install.
+def keystorePropsFile = rootProject.file('keystore.properties')
+def keystoreProps = new Properties()
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "app.compass.agenda"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -26,7 +37,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders = [appAuthRedirectScheme: redirectScheme]
         aaptOptions {
@@ -35,8 +46,19 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (keystorePropsFile.exists()) {
+                storeFile file(keystoreProps['storeFile'])
+                storePassword keystoreProps['storePassword']
+                keyAlias keystoreProps['keyAlias']
+                keyPassword keystoreProps['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig keystorePropsFile.exists() ? signingConfigs.release : null
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
