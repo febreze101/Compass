@@ -89,8 +89,8 @@ interface AppState {
   moveTask: (taskId: string, direction: 'up' | 'down') => Promise<void>
   /** Checks or un-checks an evergreen task for the current day. */
   toggleHabit: (habitId: string) => Promise<void>
-  /** Creates a daily evergreen task starting today. */
-  addHabit: (title: string) => Promise<void>
+  /** Creates an evergreen task starting today, on the given cadence — see `lib/habits.ts`. */
+  addHabit: (title: string, cadence: string) => Promise<void>
   addEvent: (draft: EventDraft) => Promise<void>
   /**
    * Report whether the write landed, unlike the fire-and-forget adders: the
@@ -464,14 +464,14 @@ export const useApp = create<AppState>()((set, get) => ({
     }
   },
 
-  async addHabit(title) {
+  async addHabit(title, cadence) {
     const client = supabase()
     if (!client) {
       set({ error: 'Evergreen tasks need Supabase configured — see .env.local.' })
       return
     }
     try {
-      const created = await createHabit(client, { title, cadence: 'daily', activeFrom: get().day })
+      const created = await createHabit(client, { title, cadence, activeFrom: get().day })
       set({ habits: [...get().habits, created] })
     } catch (error) {
       set({ error: describe(error) })

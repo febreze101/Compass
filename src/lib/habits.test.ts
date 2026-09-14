@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { createHabit, habitsForDay, listHabitLog, listHabits, logHabit, unlogHabit, type Habit } from './habits'
+import {
+  createHabit,
+  habitsForDay,
+  listHabitLog,
+  listHabits,
+  logHabit,
+  monthlyCadence,
+  unlogHabit,
+  weeklyCadence,
+  type Habit,
+} from './habits'
 
 function habit(overrides: Partial<Habit> = {}): Habit {
   return {
@@ -29,10 +39,46 @@ describe('habitsForDay', () => {
   })
 
   it('includes a weekly habit only on its matching weekday', () => {
-    // weekly:3 is Wednesday (Date#getDay() === 3).
-    const habits = [habit({ cadence: 'weekly:3' })]
+    // weekly:1:3 is every week on Wednesday (Date#getDay() === 3).
+    const habits = [habit({ cadence: 'weekly:1:3' })]
     expect(habitsForDay(habits, WEDNESDAY)).toHaveLength(1)
     expect(habitsForDay(habits, MONDAY)).toHaveLength(0)
+  })
+
+  it('includes a habit on every one of several weekdays', () => {
+    // weekly:1:1,3,5 is every Monday, Wednesday and Friday.
+    const habits = [habit({ cadence: 'weekly:1:1,3,5', activeFrom: MONDAY })]
+    expect(habitsForDay(habits, MONDAY)).toHaveLength(1)
+    expect(habitsForDay(habits, WEDNESDAY)).toHaveLength(1)
+    expect(habitsForDay(habits, SATURDAY)).toHaveLength(0)
+  })
+
+  it('skips alternating weeks for an every-other-week cadence (garbage day)', () => {
+    // weekly:2:1 anchored to a Monday: that Monday, then every other one.
+    const habits = [habit({ cadence: 'weekly:2:1', activeFrom: MONDAY })]
+    expect(habitsForDay(habits, MONDAY)).toHaveLength(1) // week 0 — applies
+    expect(habitsForDay(habits, '2026-09-21')).toHaveLength(0) // week 1 — skipped
+    expect(habitsForDay(habits, '2026-09-28')).toHaveLength(1) // week 2 — applies
+  })
+
+  it('applies a monthly habit only on its day of month', () => {
+    const habits = [habit({ cadence: 'monthly:1:15', activeFrom: '2026-01-01' })]
+    expect(habitsForDay(habits, '2026-09-15')).toHaveLength(1)
+    expect(habitsForDay(habits, '2026-09-16')).toHaveLength(0)
+  })
+
+  it('skips two months out of three for a quarterly cadence', () => {
+    const habits = [habit({ cadence: 'monthly:3:15', activeFrom: '2026-01-15' })]
+    expect(habitsForDay(habits, '2026-01-15')).toHaveLength(1) // month 0 — applies
+    expect(habitsForDay(habits, '2026-02-15')).toHaveLength(0) // month 1 — skipped
+    expect(habitsForDay(habits, '2026-03-15')).toHaveLength(0) // month 2 — skipped
+    expect(habitsForDay(habits, '2026-04-15')).toHaveLength(1) // month 3 — applies
+  })
+
+  it('skips a day-of-month that a shorter month never reaches, rather than rolling over', () => {
+    const habits = [habit({ cadence: 'monthly:1:31', activeFrom: '2026-01-01' })]
+    expect(habitsForDay(habits, '2026-02-28')).toHaveLength(0)
+    expect(habitsForDay(habits, '2026-01-31')).toHaveLength(1)
   })
 
   it('excludes a habit before its activeFrom date', () => {
@@ -51,13 +97,42 @@ describe('habitsForDay', () => {
   })
 
   it('treats an unrecognised cadence as never-applies rather than throwing', () => {
-    const habits = [habit({ cadence: 'monthly:15' })]
+    const habits = [habit({ cadence: 'yearly:03-15' })]
     expect(habitsForDay(habits, MONDAY)).toEqual([])
   })
 
   it('sorts by the sort field', () => {
     const habits = [habit({ id: 'b', sort: 2, title: 'B' }), habit({ id: 'a', sort: 1, title: 'A' })]
     expect(habitsForDay(habits, MONDAY).map((h) => h.id)).toEqual(['a', 'b'])
+  })
+})
+
+describe('weeklyCadence', () => {
+  it('builds an every-week cadence for a single day', () => {
+    expect(weeklyCadence(1, [2])).toBe('weekly:1:2')
+  })
+
+  it('dedupes and sorts multiple days', () => {
+    expect(weeklyCadence(1, [5, 1, 1, 3])).toBe('weekly:1:1,3,5')
+  })
+
+  it('floors an interval below 1', () => {
+    expect(weeklyCadence(0, [2])).toBe('weekly:1:2')
+  })
+})
+
+describe('monthlyCadence', () => {
+  it('builds a monthly cadence', () => {
+    expect(monthlyCadence(1, 15)).toBe('monthly:1:15')
+  })
+
+  it('builds a quarterly cadence', () => {
+    expect(monthlyCadence(3, 1)).toBe('monthly:3:1')
+  })
+
+  it('clamps the day of month to 1-31', () => {
+    expect(monthlyCadence(1, 45)).toBe('monthly:1:31')
+    expect(monthlyCadence(1, 0)).toBe('monthly:1:1')
   })
 })
 

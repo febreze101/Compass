@@ -17,12 +17,26 @@ export interface Habit {
   id: string
   title: string
   /**
-   * `'daily'`, `'weekdays'` (Mon–Fri), or `'weekly:N'` where N is
-   * `Date#getDay()` (0 = Sunday .. 6 = Saturday) — `'weekly:3'` is every
-   * Wednesday. Free text on the wire (the `habits.cadence` column is
-   * unconstrained `text`, so a future cadence shape is a migration-free
-   * addition); anything this module doesn't recognise degrades to "never
-   * applies" rather than throwing, so one bad row can't blank the whole day.
+   * Free text on the wire (the `habits.cadence` column is unconstrained
+   * `text`, so this grammar can grow without a migration); anything this
+   * module doesn't recognise degrades to "never applies" rather than
+   * throwing, so one bad row can't blank the whole day. Recognised forms:
+   *
+   * - `'daily'` — every day.
+   * - `'weekdays'` — Monday through Friday.
+   * - `'weekly:<N>:<days>'` — every `N` weeks, on the given weekdays
+   *   (`Date#getDay()` numbers, 0 = Sunday .. 6 = Saturday, comma-separated
+   *   for more than one day a week). `'weekly:1:2'` is every Tuesday;
+   *   `'weekly:2:2'` is every *other* Tuesday (garbage day); `'weekly:1:1,4'`
+   *   is every Monday and Thursday. Weeks are counted from `activeFrom`,
+   *   Sunday-aligned, so "every other week" means relative to when the
+   *   habit was created, not some global epoch.
+   * - `'monthly:<N>:<day>'` — every `N` months, on the given day of the
+   *   month (1–31). `'monthly:1:1'` is the 1st of every month;
+   *   `'monthly:3:15'` is quarterly, on the 15th. A day past the end of a
+   *   shorter month (e.g. 31 in February) is simply skipped that month
+   *   rather than rolling over — silently moving a due date is worse than
+   *   missing it once.
    */
   cadence: string
   activeFrom: DayKey
@@ -31,17 +45,67 @@ export interface Habit {
   sort: number
 }
 
-const WEEKLY_PATTERN = /^weekly:([0-6])$/
+const WEEKLY_PATTERN = /^weekly:(\d+):([0-6](?:,[0-6])*)$/
+const MONTHLY_PATTERN = /^monthly:(\d+):(\d{1,2})$/
 
-function appliesOnDay(cadence: string, day: DayKey): boolean {
+/** The Sunday that starts `date`'s week, at local midnight. */
+function startOfWeek(date: Date): Date {
+  const start = new Date(date)
+  start.setDate(start.getDate() - start.getDay())
+  start.setHours(0, 0, 0, 0)
+  return start
+}
+
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
+
+function weeksBetween(from: Date, to: Date): number {
+  return Math.round((startOfWeek(to).getTime() - startOfWeek(from).getTime()) / MS_PER_WEEK)
+}
+
+function monthsBetween(from: Date, to: Date): number {
+  return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth())
+}
+
+function appliesOnDay(cadence: string, day: DayKey, activeFrom: DayKey): boolean {
   if (cadence === 'daily') return true
   if (cadence === 'weekdays') {
     const weekday = parseDayKey(day).getDay()
     return weekday >= 1 && weekday <= 5
   }
+
   const weekly = WEEKLY_PATTERN.exec(cadence)
-  if (weekly) return parseDayKey(day).getDay() === Number(weekly[1])
+  if (weekly) {
+    const interval = Math.max(1, Number(weekly[1]))
+    const weekdays = weekly[2].split(',').map(Number)
+    const date = parseDayKey(day)
+    if (!weekdays.includes(date.getDay())) return false
+    const elapsed = weeksBetween(parseDayKey(activeFrom), date)
+    return elapsed >= 0 && elapsed % interval === 0
+  }
+
+  const monthly = MONTHLY_PATTERN.exec(cadence)
+  if (monthly) {
+    const interval = Math.max(1, Number(monthly[1]))
+    const dayOfMonth = Number(monthly[2])
+    const date = parseDayKey(day)
+    if (date.getDate() !== dayOfMonth) return false
+    const elapsed = monthsBetween(parseDayKey(activeFrom), date)
+    return elapsed >= 0 && elapsed % interval === 0
+  }
+
   return false
+}
+
+/** Builds a `weekly:` cadence string from a UI picker's interval + day selection. */
+export function weeklyCadence(interval: number, weekdays: number[]): string {
+  const days = [...new Set(weekdays)].sort((a, b) => a - b)
+  return `weekly:${Math.max(1, Math.round(interval))}:${days.join(',')}`
+}
+
+/** Builds a `monthly:` cadence string — `interval: 3` is the quarterly case. */
+export function monthlyCadence(interval: number, dayOfMonth: number): string {
+  const day = Math.min(31, Math.max(1, Math.round(dayOfMonth)))
+  return `monthly:${Math.max(1, Math.round(interval))}:${day}`
 }
 
 /**
@@ -53,7 +117,7 @@ function appliesOnDay(cadence: string, day: DayKey): boolean {
 export function habitsForDay(habits: Habit[], day: DayKey): Habit[] {
   return habits
     .filter((h) => h.activeFrom <= day && (!h.activeTo || day <= h.activeTo))
-    .filter((h) => appliesOnDay(h.cadence, day))
+    .filter((h) => appliesOnDay(h.cadence, day, h.activeFrom))
     .sort((a, b) => a.sort - b.sort)
 }
 

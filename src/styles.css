@@ -471,6 +471,78 @@ button {
   outline: none;
 }
 
+/* ── Evergreen task add form ──────────────────────────────────────────── */
+
+.habit-add__frequency {
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  flex: none;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.habit-add__frequency:hover,
+.habit-add__frequency:focus {
+  border-color: var(--rule);
+  background: var(--card-sunk);
+  outline: none;
+}
+
+.habit-add__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4) var(--space-3);
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.habit-add__interval {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.habit-add__number {
+  width: 3em;
+  border: 1px solid var(--rule);
+  background: var(--card-sunk);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-1);
+  text-align: center;
+}
+
+.habit-add__weekdays {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.habit-add__day {
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.habit-add__day--on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+}
+
 .hint {
   margin: var(--space-2) 0 0;
   font-size: 12.5px;
