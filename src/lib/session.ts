@@ -51,8 +51,13 @@ export function signOut(platform: Platform): Promise<void> {
  * `.env.local` entry must not block Google sign-in, which is what the rest
  * of the app actually depends on.
  *
- * Called on every sign-in and every resumed session — `persistSession` is
- * off (see `supabase.ts`), so each fresh boot needs its own exchange.
+ * Called on every sign-in, and again on every resumed session as a
+ * self-heal: `supabase.ts` persists and auto-refreshes its own session
+ * independently, so this second call is usually a no-op confirming that
+ * session is still good — but if it's ever missing (a cleared browser
+ * profile, an upgrade from before persistence was added), this is what
+ * re-establishes it, as long as the Google ID token from the original
+ * sign-in hasn't expired.
  */
 export async function syncSupabaseAuth(tokens: TokenSet): Promise<void> {
   const client = supabase()

@@ -27,11 +27,20 @@ export function supabase(): SupabaseClient | null {
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return null
   client ??= createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     auth: {
-      // Compass already persists the session itself, keyed to the platform's
-      // own secret store (see session.ts) — a second copy in localStorage
-      // would be one more place for the two to drift.
-      persistSession: false,
-      autoRefreshToken: false,
+      // Must persist and self-refresh. The Supabase session is established
+      // once via the Google ID token (session.ts's syncSupabaseAuth), but
+      // that ID token expires ~1 hour after sign-in and Google never
+      // reissues one on a plain token refresh — so without its own
+      // persisted, auto-refreshing session, every write after that first
+      // hour fails RLS with "new row violates row-level security policy"
+      // for no visible reason. Defaults to `localStorage`, which is real
+      // and persistent in the Tauri/Capacitor webviews (unlike a raw
+      // browser tab, both survive app restarts) — deliberately not routed
+      // through the platform's OS-keychain SecretStore, whose blob-size
+      // limit (a few KB on Windows) a full session-plus-user-metadata
+      // object would risk exceeding.
+      persistSession: true,
+      autoRefreshToken: true,
     },
   })
   return client

@@ -263,8 +263,9 @@ export const useApp = create<AppState>()((set, get) => ({
         tokens = await completeSignIn(host, redirect)
       } else {
         tokens = await restoreSession(host)
-        // Supabase's session isn't persisted (see supabase.ts) — a resumed
-        // Google session needs its own fresh exchange on every boot.
+        // Supabase's own session already persists and auto-refreshes
+        // itself (supabase.ts) — this is a self-heal for the case it
+        // didn't survive, not the primary mechanism. See syncSupabaseAuth.
         if (tokens) await syncSupabaseAuth(tokens)
       }
       if (!tokens) {
