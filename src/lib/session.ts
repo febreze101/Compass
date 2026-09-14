@@ -56,12 +56,27 @@ export function signOut(platform: Platform): Promise<void> {
  */
 export async function syncSupabaseAuth(tokens: TokenSet): Promise<void> {
   const client = supabase()
-  if (!client || !tokens.idToken) return
+  if (!client) return
+  if (!tokens.idToken) {
+    // Expected right after the openid/email scope was added: the stored
+    // session is still the one from before, with no ID token on it. Fixed
+    // by disconnecting and reconnecting Google once, not by anything here.
+    console.warn(
+      'Compass: no Google ID token on this session, so Supabase sync stayed off. ' +
+        'Disconnect and reconnect Google to get a fresh one.',
+    )
+    return
+  }
   try {
-    await client.auth.signInWithIdToken({ provider: 'google', token: tokens.idToken })
-  } catch {
-    // Swallowed on purpose — see the note above. Note sync just stays off
-    // until the next successful attempt.
+    const { error } = await client.auth.signInWithIdToken({ provider: 'google', token: tokens.idToken })
+    if (error) throw error
+  } catch (error) {
+    // Never fatal — see the note above, sync is a mirror, not a dependency.
+    // Logged rather than fully silent, since a Supabase misconfiguration
+    // (the Google provider's Client IDs in the dashboard, most commonly)
+    // otherwise fails invisibly: every write past this point 403s on RLS
+    // with no obvious cause.
+    console.warn('Compass: Supabase sign-in failed, note sync and evergreen tasks are off.', error)
   }
 }
 
