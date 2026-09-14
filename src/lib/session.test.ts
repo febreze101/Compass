@@ -213,4 +213,24 @@ describe('restoreSession / signOut', () => {
     await signOut(p)
     expect(await restoreSession(p)).toBeNull()
   })
+
+  it('stores the ID token under its own key, not inside the main token blob', async () => {
+    // Regression guard: Windows Credential Manager caps one credential's
+    // value at 2560 UTF-16 chars. A JWT-sized idToken folded into the same
+    // JSON as accessToken/refreshToken/scope pushed real sessions over that
+    // limit — see the comment on ID_TOKEN_KEY in session.ts.
+    const p = fakePlatform()
+    await createTokenStore(p).set({ accessToken: 'at', expiresAt: NOW, idToken: 'header.payload.sig' })
+    const stored = await p.secrets.get('google.tokens')
+    expect(stored).not.toContain('idToken')
+    expect(await p.secrets.get('google.idToken')).toBe('header.payload.sig')
+    expect(await restoreSession(p)).toMatchObject({ accessToken: 'at', idToken: 'header.payload.sig' })
+  })
+
+  it('clears the ID token on sign out too', async () => {
+    const p = fakePlatform()
+    await createTokenStore(p).set({ accessToken: 'at', expiresAt: NOW, idToken: 'a.b.c' })
+    await signOut(p)
+    expect(await p.secrets.get('google.idToken')).toBeNull()
+  })
 })

@@ -12,6 +12,17 @@ import { challengeFor, createVerifier, randomState } from './google/pkce'
 import { supabase } from './supabase'
 
 const TOKENS_KEY = 'google.tokens'
+/**
+ * Stored separately from `TOKENS_KEY`, not folded into the same JSON blob.
+ * Windows Credential Manager (the `keyring` crate's backend for
+ * `secret_set`/`secret_get`, see `src-tauri/src/lib.rs`) caps a single
+ * credential's value at 2560 UTF-16 characters. The access/refresh token
+ * plus scope fit under that alone; adding the ID token's full JWT on top
+ * pushed it over, and failed with "password encoded as UTF-16 is longer
+ * than platform limit of 2560 chars" — a Rust-side error with nothing in it
+ * pointing at which field was the culprit.
+ */
+const ID_TOKEN_KEY = 'google.idToken'
 
 /** The session, persisted through the platform's secret store. */
 export function createTokenStore(platform: Platform): TokenStore {
@@ -20,18 +31,28 @@ export function createTokenStore(platform: Platform): TokenStore {
       const raw = await platform.secrets.get(TOKENS_KEY)
       if (!raw) return null
       try {
-        return JSON.parse(raw) as TokenSet
+        const tokens = JSON.parse(raw) as TokenSet
+        const idToken = await platform.secrets.get(ID_TOKEN_KEY)
+        return idToken ? { ...tokens, idToken } : tokens
       } catch {
         // Corrupt storage should log the user out, not brick the app.
         await platform.secrets.delete(TOKENS_KEY)
+        await platform.secrets.delete(ID_TOKEN_KEY)
         return null
       }
     },
     async set(tokens) {
-      await platform.secrets.set(TOKENS_KEY, JSON.stringify(tokens))
+      const { idToken, ...rest } = tokens
+      await platform.secrets.set(TOKENS_KEY, JSON.stringify(rest))
+      // Not every session has one (e.g. one from before openid/email was
+      // added to the scope list) — nothing to store, and nothing stale to
+      // leave behind either.
+      if (idToken) await platform.secrets.set(ID_TOKEN_KEY, idToken)
+      else await platform.secrets.delete(ID_TOKEN_KEY)
     },
     async clear() {
       await platform.secrets.delete(TOKENS_KEY)
+      await platform.secrets.delete(ID_TOKEN_KEY)
     },
   }
 }
