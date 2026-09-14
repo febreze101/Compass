@@ -70,6 +70,12 @@ describe('buildAuthUrl', () => {
     // authentication scopes", long after a sign-in that looked successful.
     expect(url().searchParams.get('scope')).toContain('auth/calendar.calendarlist.readonly')
   })
+
+  it('requests openid and email, for the Supabase ID-token exchange', () => {
+    const scope = url().searchParams.get('scope') ?? ''
+    expect(scope).toContain('openid')
+    expect(scope).toContain('email')
+  })
 })
 
 describe('isExpired', () => {
@@ -122,6 +128,14 @@ describe('exchangeCode', () => {
     expect(tokens.expiresAt).toBe(NOW + 3599 * 1000)
     expect(tokens.accessToken).toBe('at')
     expect(tokens.refreshToken).toBe('rt')
+  })
+
+  it('carries the id_token through onto the token set', async () => {
+    vi.stubGlobal('fetch', mockJson({ access_token: 'at', expires_in: 3599, id_token: 'the-id-token' }))
+    const tokens = await exchangeCode({
+      code: 'c', verifier: 'v', redirectUri: 'r', credentials: creds,
+    })
+    expect(tokens.idToken).toBe('the-id-token')
   })
 
   it('omits client_secret for clients that have none, such as Android', async () => {
@@ -181,6 +195,19 @@ describe('refreshTokens', () => {
     vi.stubGlobal('fetch', mockJson({ access_token: 'at2', refresh_token: 'rotated', expires_in: 60 }))
     const tokens = await refreshTokens({ refreshToken: 'original-rt', credentials: creds })
     expect(tokens.refreshToken).toBe('rotated')
+  })
+
+  it('KEEPS the id token when Google omits it from the refresh response', async () => {
+    // Same story again: a plain refresh_token grant doesn't reissue an
+    // id_token, so losing it here would silently break Supabase sync auth
+    // on the very next refresh.
+    vi.stubGlobal('fetch', mockJson({ access_token: 'at2', expires_in: 3599 }))
+    const tokens = await refreshTokens({
+      refreshToken: 'rt',
+      credentials: creds,
+      idToken: 'original-id-token',
+    })
+    expect(tokens.idToken).toBe('original-id-token')
   })
 
   it('reports a revoked grant clearly', async () => {

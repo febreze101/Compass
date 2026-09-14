@@ -257,6 +257,21 @@ button {
   text-decoration: line-through;
 }
 
+.task__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.task__reorder {
+  display: flex;
+  gap: var(--space-1);
+  flex: none;
+}
+
 /* ── Empty / status ────────────────────────────────────────────────────── */
 
 .empty {
@@ -379,6 +394,12 @@ button {
   font-size: 14px;
   color: var(--ink-2);
   cursor: pointer;
+  /* Also used on <button> result rows (NoteSearch) — reset to match the
+     plain <label> rows around it rather than default browser chrome. */
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
 }
 
 .sources__footer {

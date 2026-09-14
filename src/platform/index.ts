@@ -5,9 +5,12 @@
  * property check rather than a build flag — one bundle runs everywhere.
  */
 
+import { createSyncedNoteStore, type SyncedNoteStore } from '../lib/notesSync'
+import { supabase } from '../lib/supabase'
 import { createCapacitorPlatform } from './capacitor'
 import { createTauriPlatform } from './tauri'
 import { createWebPlatform } from './web'
+import type { DayKey } from '../lib/date'
 import type { Platform, PlatformName } from './types'
 
 declare global {
@@ -25,8 +28,17 @@ export function detectPlatform(): PlatformName {
 }
 
 let current: Platform | null = null
+let syncedNotes: SyncedNoteStore | null = null
 
-/** The active platform, created once per session. */
+/**
+ * The active platform, created once per session.
+ *
+ * When a Supabase project is configured, `notes` is swapped for the synced
+ * decorator (docs/UPDATES.md §1.3) right here — every other module keeps
+ * calling `platform().notes.read/write/listDaysWithNotes` exactly as before
+ * and stays unaware sync exists. `pullNote` below is the one addition, for
+ * the pull points that have to live outside this seam.
+ */
 export function platform(): Platform {
   if (current) return current
   switch (detectPlatform()) {
@@ -40,7 +52,22 @@ export function platform(): Platform {
     default:
       current = createWebPlatform()
   }
+  const client = supabase()
+  if (client) {
+    syncedNotes = createSyncedNoteStore(current.notes, client)
+    current.notes = syncedNotes
+  }
   return current
+}
+
+/**
+ * Reconciles one day's note against Supabase. A no-op when sync isn't
+ * configured (`.env.local` missing the Supabase vars) — sync is additive,
+ * never a requirement for the app to work. Call `platform()` first so the
+ * decorator exists.
+ */
+export function pullNote(day: DayKey): Promise<void> {
+  return syncedNotes ? syncedNotes.pull(day) : Promise.resolve()
 }
 
 export type { Platform } from './types'

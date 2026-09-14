@@ -12,6 +12,7 @@ export default function App() {
   const boot = useApp((s) => s.boot)
   const flushNote = useApp((s) => s.flushNote)
   const watchExit = useApp((s) => s.watchExit)
+  const syncOnFocus = useApp((s) => s.syncOnFocus)
 
   useEffect(() => {
     void boot()
@@ -27,6 +28,15 @@ export default function App() {
     window.addEventListener('blur', flush)
     return () => window.removeEventListener('blur', flush)
   }, [flushNote])
+
+  // The read-side counterpart of the blur flush above: coming back to the
+  // app is when a note written on another device is most likely to be
+  // waiting (docs/UPDATES.md §1.3's third pull point).
+  useEffect(() => {
+    const sync = () => void syncOnFocus()
+    window.addEventListener('focus', sync)
+    return () => window.removeEventListener('focus', sync)
+  }, [syncOnFocus])
 
   return (
     <>

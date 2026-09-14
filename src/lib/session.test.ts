@@ -1,6 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { beginSignIn, completeSignIn, createTokenStore, restoreSession, signOut } from './session'
+import {
+  beginSignIn,
+  completeSignIn,
+  createTokenStore,
+  restoreSession,
+  signOut,
+  syncSupabaseAuth,
+} from './session'
 import type { Platform, PendingAuth } from '../platform/types'
+
+const signInWithIdToken = vi.fn().mockResolvedValue({ error: null })
+vi.mock('./supabase', () => ({
+  supabase: () => ({ auth: { signInWithIdToken } }),
+}))
 
 const NOW = new Date('2026-09-05T12:00:00Z').getTime()
 const CALLBACK = 'http://127.0.0.1:5173/oauth/callback'
@@ -20,6 +32,8 @@ function fakePlatform(): Platform & { authorized: string[]; pending: PendingAuth
       read: async () => '',
       write: async () => {},
       listDaysWithNotes: async () => [],
+      readSyncState: async () => null,
+      writeSyncState: async () => {},
     },
     openExternal: async () => {},
     onBeforeExit: () => () => {},
@@ -52,6 +66,7 @@ const tokenResponse = {
 beforeEach(() => {
   vi.useFakeTimers()
   vi.setSystemTime(NOW)
+  signInWithIdToken.mockClear()
 })
 afterEach(() => {
   vi.useRealTimers()
@@ -151,6 +166,27 @@ describe('completeSignIn', () => {
     await expect(
       completeSignIn(p, 'http://127.0.0.1:5173/oauth/callback?state=st'),
     ).rejects.toThrow(/code/i)
+  })
+})
+
+describe('syncSupabaseAuth', () => {
+  it('exchanges the Google ID token for a Supabase session', async () => {
+    await syncSupabaseAuth({ accessToken: 'at', expiresAt: NOW, idToken: 'the-id-token' })
+    expect(signInWithIdToken).toHaveBeenCalledWith({ provider: 'google', token: 'the-id-token' })
+  })
+
+  it('does nothing when the session carries no ID token', async () => {
+    // Sign-ins from before openid/email were added to the scope list, or a
+    // refresh that somehow still lacks one.
+    await syncSupabaseAuth({ accessToken: 'at', expiresAt: NOW })
+    expect(signInWithIdToken).not.toHaveBeenCalled()
+  })
+
+  it('swallows a Supabase failure rather than breaking Google sign-in', async () => {
+    signInWithIdToken.mockRejectedValueOnce(new Error('network down'))
+    await expect(
+      syncSupabaseAuth({ accessToken: 'at', expiresAt: NOW, idToken: 'tok' }),
+    ).resolves.toBeUndefined()
   })
 })
 

@@ -25,6 +25,15 @@ export interface NoteStore {
   write(dayKey: string, markdown: string): Promise<void>
   /** Days that have a non-empty note, for marking them in the date bar. */
   listDaysWithNotes(): Promise<string[]>
+
+  /**
+   * A small JSON blob living alongside the notes, not a note itself —
+   * `lib/notesSync.ts`'s dirty-tracking state (docs/UPDATES.md §1.3). `null`
+   * when it hasn't been written yet, which sync treats as "everything looks
+   * dirty" — the self-healing case when this file is deleted.
+   */
+  readSyncState(): Promise<string | null>
+  writeSyncState(contents: string): Promise<void>
 }
 
 /** PKCE state that has to survive the trip out to Google and back. */

@@ -1,7 +1,9 @@
 import { useApp } from '../state/store'
+import { habitsForDay } from '../lib/habits'
 import { Capture } from './Capture'
 import { DayBar } from './DayBar'
 import { EventList } from './EventList'
+import { HabitList } from './HabitList'
 import { Note } from './Note'
 import { SourcePicker } from './SourcePicker'
 import { TaskList } from './TaskList'
@@ -12,6 +14,8 @@ export function TodayPage() {
   const events = useApp((s) => s.events)
   const tasks = useApp((s) => s.tasks)
   const undated = useApp((s) => s.undated)
+  const habits = useApp((s) => s.habits)
+  const habitLog = useApp((s) => s.habitLog)
   const calendars = useApp((s) => s.calendars)
   const taskLists = useApp((s) => s.taskLists)
   const daysWithNotes = useApp((s) => s.daysWithNotes)
@@ -26,7 +30,17 @@ export function TodayPage() {
 
       <EventList events={events} calendars={calendars} />
 
-      <TaskList title="Tasks" tasks={tasks} lists={taskLists} emptyLabel="Nothing due today." />
+      <TaskList
+        title="Tasks"
+        tasks={tasks}
+        lists={taskLists}
+        emptyLabel="Nothing due today."
+        reorderable
+      />
+
+      {/* Section order per docs/UPDATES.md §2.4: timed → due today →
+          evergreen → no date. */}
+      <HabitList habits={habitsForDay(habits, day)} habitLog={habitLog} />
 
       {/* Tasks Google holds with no date. Compass always sets one, but tasks
           made in Google's own apps may not have it — without this they would

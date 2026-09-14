@@ -53,6 +53,18 @@ async function ensureNotesDir(): Promise<void> {
 
 const notePath = (dayKey: string) => `${NOTES_DIR}/${dayKey}.md`
 
+/** Sync's dirty-tracking sidecar — see the matching constant in tauri.ts. */
+const SYNC_DIR = `${NOTES_DIR}/.compass`
+const SYNC_STATE_PATH = `${SYNC_DIR}/sync.json`
+
+async function ensureSyncDir(): Promise<void> {
+  try {
+    await Filesystem.mkdir({ path: SYNC_DIR, directory: NOTES_BASE, recursive: true })
+  } catch {
+    // Already exists — see ensureNotesDir above for why this is the check.
+  }
+}
+
 const capacitorNotes: NoteStore = {
   async read(dayKey) {
     try {
@@ -91,6 +103,29 @@ const capacitorNotes: NoteStore = {
     } catch {
       return []
     }
+  },
+
+  async readSyncState() {
+    try {
+      const { data } = await Filesystem.readFile({
+        path: SYNC_STATE_PATH,
+        directory: NOTES_BASE,
+        encoding: Encoding.UTF8,
+      })
+      return typeof data === 'string' ? data : null
+    } catch {
+      return null
+    }
+  },
+
+  async writeSyncState(contents) {
+    await ensureSyncDir()
+    await Filesystem.writeFile({
+      path: SYNC_STATE_PATH,
+      directory: NOTES_BASE,
+      data: contents,
+      encoding: Encoding.UTF8,
+    })
   },
 }
 

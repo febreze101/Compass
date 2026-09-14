@@ -4,6 +4,7 @@ import {
   deleteTask,
   listTaskLists,
   listTasks,
+  moveTask,
   setTaskCompleted,
   tasksForDay,
   undatedTasks,
@@ -170,6 +171,24 @@ describe('deleteTask', () => {
     await deleteTask(client, { listId: 'l1', taskId: 't1' })
     expect(client.calls[0].url).toContain('/lists/l1/tasks/t1')
     expect(client.calls[0].init?.method).toBe('DELETE')
+  })
+})
+
+describe('moveTask', () => {
+  it('posts to the move endpoint with the requested previous task', async () => {
+    const client = recordingClient({ id: 't1', status: 'needsAction' })
+    await moveTask(client, { listId: 'l1', taskId: 't1', previousTaskId: 't0' })
+    const url = new URL(client.calls[0].url)
+    expect(url.pathname).toContain('/lists/l1/tasks/t1/move')
+    expect(url.searchParams.get('previous')).toBe('t0')
+    expect(client.calls[0].init?.method).toBe('POST')
+  })
+
+  it('omits the previous param to move a task to the front', async () => {
+    const client = recordingClient({ id: 't1', status: 'needsAction' })
+    await moveTask(client, { listId: 'l1', taskId: 't1' })
+    const url = new URL(client.calls[0].url)
+    expect(url.searchParams.has('previous')).toBe(false)
   })
 })
 

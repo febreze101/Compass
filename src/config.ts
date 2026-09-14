@@ -33,8 +33,16 @@ export const GOOGLE_REVOKE_ENDPOINT = 'https://oauth2.googleapis.com/revoke';
  * `userinfo.email` was requested at first and dropped: nothing in the app ever
  * called for it, and an unused scope is one more line on the consent screen for
  * the user to decline.
+ *
+ * `openid email` was added back for note sync (docs/UPDATES.md §1.5): the ID
+ * token it produces is what lets Supabase authenticate the user via
+ * `signInWithIdToken`, with no second sign-in and a real `auth.uid()` for RLS.
+ * Changing the scope set means one extra consent-screen trip on next sign-in —
+ * accepted per §9.3.
  */
 export const GOOGLE_SCOPES = [
+  'openid',
+  'email',
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
   'https://www.googleapis.com/auth/tasks',

@@ -76,6 +76,7 @@ export function createGoogleClient(options: {
           refreshToken: current.refreshToken as string,
           credentials,
           scope: current.scope,
+          idToken: current.idToken,
         })
         await store.set(next)
         return next

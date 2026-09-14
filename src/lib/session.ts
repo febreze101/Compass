@@ -9,6 +9,7 @@ import type { Platform } from '../platform/types'
 import { buildAuthUrl, exchangeCode, type TokenSet } from './google/auth'
 import type { TokenStore } from './google/client'
 import { challengeFor, createVerifier, randomState } from './google/pkce'
+import { supabase } from './supabase'
 
 const TOKENS_KEY = 'google.tokens'
 
@@ -41,6 +42,27 @@ export function restoreSession(platform: Platform): Promise<TokenSet | null> {
 
 export function signOut(platform: Platform): Promise<void> {
   return createTokenStore(platform).clear()
+}
+
+/**
+ * Authenticates to Supabase as the same Google user, via the ID token Google
+ * just issued (docs/UPDATES.md §1.5). Best-effort: sync is a mirror, never
+ * the source of truth (SCOPE.md §8.4), so a Supabase outage or a missing
+ * `.env.local` entry must not block Google sign-in, which is what the rest
+ * of the app actually depends on.
+ *
+ * Called on every sign-in and every resumed session — `persistSession` is
+ * off (see `supabase.ts`), so each fresh boot needs its own exchange.
+ */
+export async function syncSupabaseAuth(tokens: TokenSet): Promise<void> {
+  const client = supabase()
+  if (!client || !tokens.idToken) return
+  try {
+    await client.auth.signInWithIdToken({ provider: 'google', token: tokens.idToken })
+  } catch {
+    // Swallowed on purpose — see the note above. Note sync just stays off
+    // until the next successful attempt.
+  }
 }
 
 /**
@@ -111,5 +133,6 @@ export async function completeSignIn(platform: Platform, redirectUrl: string): P
   })
 
   await createTokenStore(platform).set(tokens)
+  await syncSupabaseAuth(tokens)
   return tokens
 }

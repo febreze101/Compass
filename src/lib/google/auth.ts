@@ -26,6 +26,13 @@ export interface TokenSet {
   /** Absolute epoch-ms expiry, not the relative `expires_in` Google sends. */
   expiresAt: number
   scope?: string
+  /**
+   * The OIDC ID token, present once `openid` is in scope (see config.ts).
+   * Handed to Supabase's `signInWithIdToken` in `session.ts` — never sent
+   * anywhere else. Google omits it from a refresh response, so it's carried
+   * forward the same way `refreshToken` and `scope` are.
+   */
+  idToken?: string
 }
 
 /**
@@ -39,6 +46,7 @@ interface GoogleTokenResponse {
   refresh_token?: string
   expires_in?: number
   scope?: string
+  id_token?: string
   error?: string
   error_description?: string
 }
@@ -102,6 +110,7 @@ function toTokenSet(payload: GoogleTokenResponse, now: number): TokenSet {
     refreshToken: payload.refresh_token,
     expiresAt: now + (payload.expires_in ?? 3600) * 1000,
     scope: payload.scope,
+    idToken: payload.id_token,
   }
 }
 
@@ -138,6 +147,8 @@ export async function refreshTokens(params: {
   credentials: ClientCredentials
   /** Scope from the existing session, carried forward if Google omits it. */
   scope?: string
+  /** ID token from the existing session, carried forward if Google omits it. */
+  idToken?: string
 }): Promise<TokenSet> {
   const payload = await postToken(
     new URLSearchParams({
@@ -154,5 +165,8 @@ export async function refreshTokens(params: {
     // startup permission check, so a session missing a permission would stop
     // reporting it and fail obscurely on a data request instead.
     scope: tokens.scope ?? params.scope,
+    // Same story a third time: Google does not reissue an id_token on a plain
+    // refresh, so the one from sign-in is carried forward rather than lost.
+    idToken: tokens.idToken ?? params.idToken,
   }
 }

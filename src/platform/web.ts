@@ -14,6 +14,7 @@ import type { NoteStore, PendingAuth, Platform, SecretStore } from './types'
 const SECRET_PREFIX = 'compass.secret.'
 const NOTE_PREFIX = 'compass.note.'
 const PENDING_KEY = 'compass.pendingAuth'
+const SYNC_STATE_KEY = 'compass.syncState'
 
 const webSecrets: SecretStore = {
   async get(key) {
@@ -40,6 +41,13 @@ const webNotes: NoteStore = {
       .filter((key) => key.startsWith(NOTE_PREFIX))
       .map((key) => key.slice(NOTE_PREFIX.length))
       .sort()
+  },
+
+  async readSyncState() {
+    return localStorage.getItem(SYNC_STATE_KEY)
+  },
+  async writeSyncState(contents) {
+    localStorage.setItem(SYNC_STATE_KEY, contents)
   },
 }
 

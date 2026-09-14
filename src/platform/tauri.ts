@@ -38,6 +38,14 @@ async function ensureNotesDir(): Promise<void> {
 
 const notePath = (dayKey: string) => `${NOTES_DIR}/${dayKey}.md`
 
+/**
+ * Sync's dirty-tracking sidecar (docs/UPDATES.md §1.3), in a dot-directory so
+ * it never shows up next to the notes in a file browser or gets mistaken for
+ * one by `listDaysWithNotes`'s day-key pattern.
+ */
+const SYNC_DIR = `${NOTES_DIR}/.compass`
+const SYNC_STATE_PATH = `${SYNC_DIR}/sync.json`
+
 const tauriNotes: NoteStore = {
   async read(dayKey) {
     const path = notePath(dayKey)
@@ -64,6 +72,18 @@ const tauriNotes: NoteStore = {
       .filter((entry) => entry.isFile && /^\d{4}-\d{2}-\d{2}\.md$/.test(entry.name))
       .map((entry) => entry.name.replace(/\.md$/, ''))
       .sort()
+  },
+
+  async readSyncState() {
+    if (!(await exists(SYNC_STATE_PATH, { baseDir: NOTES_BASE }))) return null
+    return readTextFile(SYNC_STATE_PATH, { baseDir: NOTES_BASE })
+  },
+
+  async writeSyncState(contents) {
+    if (!(await exists(SYNC_DIR, { baseDir: NOTES_BASE }))) {
+      await mkdir(SYNC_DIR, { baseDir: NOTES_BASE, recursive: true })
+    }
+    await writeTextFile(SYNC_STATE_PATH, contents, { baseDir: NOTES_BASE })
   },
 }
 

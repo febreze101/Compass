@@ -1,4 +1,5 @@
 import { useApp } from '../state/store'
+import { NoteSearch } from './NoteSearch'
 
 export function SourcePicker() {
   const calendars = useApp((s) => s.calendars)
@@ -45,6 +46,8 @@ export function SourcePicker() {
           </label>
         ))}
       </div>
+
+      <NoteSearch />
 
       <div className="sources__footer">
         <span>Signed in to Google</span>

@@ -128,6 +128,26 @@ export async function deleteTask(
 }
 
 /**
+ * Repositions a task within its own list, right after `previousTaskId` (or
+ * to the front, when omitted). Only reorders within one list — Google's own
+ * endpoint has no cross-list form, which is why more than one active task
+ * list falls back to a local sort index instead (docs/UPDATES.md §2.5).
+ */
+export async function moveTask(
+  client: GoogleClient,
+  params: { listId: string; taskId: string; previousTaskId?: string },
+): Promise<TaskItem> {
+  const query = new URLSearchParams()
+  if (params.previousTaskId) query.set('previous', params.previousTaskId)
+  const suffix = query.toString() ? `?${query}` : ''
+  const updated = await client.request<RawGoogleTask>(
+    `${taskUrl(params.listId, params.taskId)}/move${suffix}`,
+    jsonRequest('POST'),
+  )
+  return normalizeTask(updated, params.listId)
+}
+
+/**
  * The tasks that belong on a given day: exactly those due that day.
  *
  * A missed task stays on the day it was scheduled rather than following the
